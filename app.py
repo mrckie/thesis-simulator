@@ -1,124 +1,109 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from pathlib import Path
 
-# Uncomment these if you want prediction mode
-# import torch
-# from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from components.table_component import display_table
+from components.barchart_component import display_metrics_chart
 
-# ---------------------------
-# PAGE CONFIG
-# ---------------------------
-st.set_page_config(
-    page_title="DistilBERT Small Dataset Simulator",
-    layout="wide"
+# ---------------- PAGE SETUP ----------------
+st.set_page_config(page_title="DistilBERT Optimization Dashboard", layout="wide")
+st.title("DistilBERT Optimization Dashboard")
+
+# ---------------- SIDEBAR ----------------
+st.sidebar.header("Simulation Controls")
+
+uploaded_file = st.sidebar.file_uploader("Upload Dataset CSV", type=["csv"])
+
+dataset_sizes = [50, 100, 500, 1000]
+selected_size = st.sidebar.selectbox(
+    "Select Dataset Size",
+    ["Select Size"] + dataset_sizes
 )
 
-# ---------------------------
-# TITLE & SUBTITLE
-# ---------------------------
-st.title("📊 DistilBERT Small Dataset Simulator")
-st.subheader("Analyze model performance and prediction on small datasets")
-
-# ---------------------------
-# SIDEBAR CONTROLS
-# ---------------------------
-st.sidebar.header("Simulator Controls")
-
-# Upload CSV
-uploaded_file = st.sidebar.file_uploader(
-    "Upload CSV with text data for prediction",
-    type=["csv"]
-)
-
-# Dataset size slider
-dataset_sizes = [50, 100, 500, 1000]  # Modify based on your experiments
-selected_size = st.sidebar.selectbox("Select training dataset size", dataset_sizes)
-
-# Optional: text input
-user_param = st.sidebar.text_input("Enter label/parameter (optional)")
-
-# Run button
 run_sim = st.sidebar.button("Run Simulation")
 
-# ---------------------------
-# LOAD METRICS CSV
-# ---------------------------
-# Example results CSV structure:
-# size,accuracy,f1,train_loss,val_loss
-# 50,0.62,0.60,0.48,0.55
-metrics_file = Path("results.csv")
-if metrics_file.exists():
-    metrics_df = pd.read_csv(metrics_file)
-else:
-    st.error("results.csv not found! Place your Colab metrics CSV here.")
-    st.stop()
-
-# ---------------------------
-# FILTER METRICS FOR SELECTED SIZE
-# ---------------------------
-size_metrics = metrics_df[metrics_df["size"] == selected_size]
-
-# ---------------------------
-# SIMULATION LOGIC
-# ---------------------------
+# ---------------- RUN SIMULATION ----------------
 if run_sim:
-    st.success(f"Simulation for dataset size {selected_size} samples")
 
-    # ---------------------------
-    # DISPLAY METRICS
-    # ---------------------------
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Accuracy", f"{size_metrics['accuracy'].values[0]:.2f}")
-    col2.metric("F1 Score", f"{size_metrics['f1'].values[0]:.2f}")
-    col3.metric("Training Loss", f"{size_metrics['train_loss'].values[0]:.2f}")
-    col4.metric("Validation Loss", f"{size_metrics['val_loss'].values[0]:.2f}")
+    # Validation
+    if uploaded_file is None:
+        st.error("⚠ Please upload a dataset CSV file before running simulation.")
+        st.stop()
 
-    # ---------------------------
-    # METRICS CHARTS
-    # ---------------------------
-    st.write("### 📈 Metrics Across Dataset Sizes")
-    metrics_chart = metrics_df.melt(
-        id_vars="size",
-        value_vars=["accuracy", "f1", "train_loss", "val_loss"],
-        var_name="Metric",
-        value_name="Value"
-    )
-    fig = px.line(metrics_chart, x="size", y="Value", color="Metric", markers=True)
-    st.plotly_chart(fig, use_container_width=True)
+    if selected_size == "Select Size":
+        st.error("⚠ Please select a dataset size.")
+        st.stop()
 
-    # ---------------------------
-    # DATA TABLE & BAR CHART
-    # ---------------------------
-    if uploaded_file is not None:
-        user_df = pd.read_csv(uploaded_file)
+    metrics_file = Path("data/results.csv")  # You can change path
 
-        st.write("### 📋 Uploaded Data Preview")
-        st.dataframe(user_df)
+    if not metrics_file.exists():
+        st.error("⚠ results.csv not found in data folder.")
+        st.stop()
 
-        # Example bar chart using first numeric column if exists
-        numeric_cols = user_df.select_dtypes(include="number").columns
-        if len(numeric_cols) >= 1:
-            st.write("### 📊 Bar Chart of Uploaded Data")
-            st.bar_chart(user_df[numeric_cols[0]])
+    metrics_df = pd.read_csv(metrics_file)
+
+    required_columns = [
+        "model", "size", "accuracy", "precision", "recall", "f1",
+        "train_loss", "val_loss", "train_time", "memory_usage"
+    ]
+
+    if not all(col in metrics_df.columns for col in required_columns):
+        st.error("Incorrect results.csv structure.")
+        st.stop()
+
+    size_data = metrics_df[metrics_df["size"] == selected_size]
+
+    baseline = size_data[size_data["model"] == "baseline"].iloc[0]
+    modified = size_data[size_data["model"] == "modified"].iloc[0]
+
+    # ------------- VARIANCE FUNCTION -------------
+    def compute_variance(base, mod, higher_is_better=True):
+        gap = abs(mod - base)
+        improved = mod > base if higher_is_better else mod < base
+        color = "green" if improved else "red"
+        return gap, improved, color
+
+    rows = []
+    metrics_info = [
+        ("Accuracy", "accuracy", True, "%"),
+        ("Precision", "precision", True, "%"),
+        ("Recall", "recall", True, "%"),
+        ("F1 Score", "f1", True, "%"),
+        ("Training Loss", "train_loss", False, "%"),
+        ("Validation Loss", "val_loss", False, "%"),
+        ("Training Time", "train_time", False, "min"),
+        ("Memory Usage", "memory_usage", False, "GB"),
+    ]
+
+    for name, key, higher_is_better, unit in metrics_info:
+        base = baseline[key]
+        mod = modified[key]
+        gap, improved, color = compute_variance(base, mod, higher_is_better)
+
+        if unit == "%":
+            base_fmt = f"{base:.1f}%"
+            mod_fmt = f"{mod:.1f}%"
+            gap_fmt = f"{gap:.2f}%"
+        elif unit == "min":
+            base_fmt = f"{base:.1f} min"
+            mod_fmt = f"{mod:.1f} min"
+            gap_fmt = f"{gap:.1f} min"
         else:
-            st.warning("No numeric columns found for bar chart.")
+            base_fmt = f"{base:.1f} GB"
+            mod_fmt = f"{mod:.1f} GB"
+            gap_fmt = f"{gap:.1f} GB"
 
-        # ---------------------------
-        # OPTIONAL: LIVE PREDICTION (Uncomment if model is available)
-        # ---------------------------
-        # st.write("### 🤖 Predictions")
-        # model_path = "model"  # folder from Colab
-        # tokenizer = AutoTokenizer.from_pretrained(model_path)
-        # model = AutoModelForSequenceClassification.from_pretrained(model_path)
-        #
-        # texts = user_df['text'].tolist()
-        # inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
-        # outputs = model(**inputs)
-        # preds = torch.argmax(outputs.logits, dim=1)
-        # user_df['predicted'] = preds.numpy()
-        # st.dataframe(user_df)
+        variance_html = f"<span style='color:{color}; font-weight:bold;'>{gap_fmt}</span>"
+        rows.append([name, base_fmt, mod_fmt, variance_html])
+
+    detailed_df = pd.DataFrame(
+        rows,
+        columns=["Metric", "Baseline Model", "Modified Model", "Variance"]
+    )
+
+    # ---------------- DISPLAY ----------------
+    display_table(detailed_df)
+    display_metrics_chart(detailed_df)
 
 else:
-    st.info("Upload a CSV and select dataset size, then click 'Run Simulation'")
+    st.info("Upload dataset and select size before running simulation.")
