@@ -1,9 +1,25 @@
 import streamlit as st
 import pandas as pd
 
-def display_table(detailed_df: pd.DataFrame):
-    # Add CSS to center content and expand table
-    st.markdown("""
+def display_table(
+    df: pd.DataFrame,
+    title: str = None,
+    show_index: bool = False,
+    container=None
+):
+    """
+    Reusable table display component.
+
+    container:
+        - None → main page
+        - st.sidebar → sidebar
+        - any Streamlit container
+    """
+
+    if container is None:
+        container = st
+
+    container.markdown("""
     <style>
         table {
             width: 100% !important;
@@ -14,11 +30,15 @@ def display_table(detailed_df: pd.DataFrame):
         }
         th, td {
             text-align: center !important;
-            padding: 16px;
+            padding: 12px;
         }
-       
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("## Detailed Metrics Table")
-    st.write(detailed_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+    if title:
+        container.markdown(f"##### {title}")
+
+    container.write(
+        df.to_html(escape=False, index=show_index),
+        unsafe_allow_html=True
+    )
