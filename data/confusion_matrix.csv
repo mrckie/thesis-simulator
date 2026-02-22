@@ -1,0 +1,25 @@
+model_name,true_label,predicted_label,count
+baseline,0,0,517
+baseline,0,1,108
+baseline,1,0,105
+baseline,1,1,270
+16.67% reduction,0,0,520
+16.67% reduction,0,1,105
+16.67% reduction,1,0,156
+16.67% reduction,1,1,219
+25% reduction,0,0,518
+25% reduction,0,1,107
+25% reduction,1,0,151
+25% reduction,1,1,224
+33.33% reduction,0,0,533
+33.33% reduction,0,1,92
+33.33% reduction,1,0,191
+33.33% reduction,1,1,184
+41.67% reduction,0,0,519
+41.67% reduction,0,1,106
+41.67% reduction,1,0,174
+41.67% reduction,1,1,201
+50% reduction,0,0,472
+50% reduction,0,1,153
+50% reduction,1,0,140
+50% reduction,1,1,235
