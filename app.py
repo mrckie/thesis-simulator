@@ -6,17 +6,24 @@ from tabs.performance import render_performance
 from tabs.training_curves import render_training_curves
 from utils.Sidebar import ShowSidebar
 from utils.data_loader import load_summary, load_curves, load_confusion
+from utils.model_testing import render_model_testing
 
 st.set_page_config(page_title="Dashboard", layout="wide")
 st.title("Model Compression Evaluation Dashboard ")
+
+# Sidebar
+
 
 # Load Data
 summary_df = load_summary()
 curves_df = load_curves()
 confusion_df = load_confusion()
 
-# Sidebar
 selected_models = ShowSidebar(summary_df)
+
+render_model_testing(selected_models)
+
+
 
 # Filtered Data
 filtered_summary = summary_df[summary_df["model_name"].isin(selected_models)]
