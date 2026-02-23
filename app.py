@@ -171,7 +171,6 @@ with tab1:
 # =================================================
 with tab2:
 
-    # Mapping formal dropdown labels to dataframe columns
     metric_options = {
         "Accuracy": "accuracy",
         "Precision (Weighted Average)": "precision_weighted_avg",
@@ -244,40 +243,99 @@ with tab2:
 # =================================================
 with tab3:
 
+    col1, col2 = st.columns(2)
+
+    with col1:
+        time_unit = st.selectbox(
+            "Training Time Unit",
+            ["Seconds", "Minutes"]
+        )
+
+    with col2:
+        memory_unit = st.selectbox(
+            "Memory Unit",
+            ["MB", "GB"]
+        )
+
+    # Prepare data for training time
+    efficiency_df = filtered_summary.copy()
+    
+    if time_unit == "Minutes":
+        efficiency_df["train_time_display"] = efficiency_df["train_time"] / 60
+        time_label = "Training Time (Minutes)"
+    else:
+        efficiency_df["train_time_display"] = efficiency_df["train_time"]
+        time_label = "Training Time (Seconds)"
+
+    if memory_unit == "MB":
+        efficiency_df["memory_display"] = efficiency_df["peak_gpu_usage"] * 1000
+        memory_label = "Peak GPU Memory Usage (MB)"
+    else:
+        efficiency_df["memory_display"] = efficiency_df["peak_gpu_usage"]
+        memory_label = "Peak GPU Memory Usage (GB)"
+
     st.subheader("Training Time Comparison")
 
     fig = px.bar(
-        filtered_summary,
+        efficiency_df,
         x="model_name",
-        y="train_time",
+        y="train_time_display",
         color="model_name",
         text_auto=True,
-        title="Training Time (Seconds)"
+        title=time_label
     )
 
     fig.update_traces(texttemplate='%{y:.2f}')
-    fig.update_layout(xaxis_title="Model Name", yaxis_title="Training Time (Seconds)")
+    fig.update_layout(xaxis_title="Model Name", yaxis_title=time_label)
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Peak GPU Memory Usage")
 
     fig2 = px.bar(
-        filtered_summary,
+        efficiency_df,
         x="model_name",
-        y="peak_gpu_usage",
+        y="memory_display",
         color="model_name",
         text_auto=True,
-        title="Peak GPU Memory Usage (MB)"
+        title=memory_label
     )
 
     fig2.update_traces(texttemplate='%{y:.2f}')
-    fig2.update_layout(xaxis_title="Model Name", yaxis_title="Memory (MB)")
+    fig2.update_layout(xaxis_title="Model Name", yaxis_title=memory_label)
     st.plotly_chart(fig2, use_container_width=True)
 
 # =================================================
 # TAB 4 — TRAINING CURVES
 # =================================================
 with tab4:
+
+    st.subheader("Epochs Configuration")
+    
+    # Create a table showing hyperparameter epochs vs actual epochs with early stopping
+    epochs_info = filtered_summary[
+        ["model_name", "epochs", "trained_epochs"]
+    ].rename(columns={
+        "model_name": "Model Name",
+        "epochs": "Hyperparameter Epochs",
+        "trained_epochs": "Actual Epochs (with Early Stopping)"
+    }).drop_duplicates()
+    
+    col1, col2, col3 = st.columns(3)
+    for idx, row in epochs_info.iterrows():
+        if idx % 3 == 0:
+            with col1:
+                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
+                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+        elif idx % 3 == 1:
+            with col2:
+                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
+                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+        else:
+            with col3:
+                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
+                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+    
+    st.info("ⓘ Early stopping is configured with patience of 2 epochs.")
 
     st.subheader("Training Loss")
 
