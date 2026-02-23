@@ -145,11 +145,17 @@ with tab1:
 
     st.subheader("Performance vs Model Size")
 
+    overview_df = sorted_df.rename(columns={
+        "accuracy": "Accuracy",
+        "parameter_count": "Parameter Count",
+        "model_name": "Model"
+    })
+
     fig = px.line(
-        sorted_df,
-        x="parameter_count",
-        y=metric_mapping[metric_choice],
-        text="model_name",
+        overview_df,
+        x="Parameter Count",
+        y="Accuracy",
+        text="Model",
         markers=True,
         title=f"{metric_choice} vs Parameter Count"
     )
@@ -190,17 +196,19 @@ with tab2:
 
     st.subheader(f"{selected_metric_label} Comparison Across Models")
 
+    perf_df = filtered_summary.rename(columns={"model_name": "Model"})
+
     fig = px.bar(
-        filtered_summary,
-        x="model_name",
+        perf_df,
+        x="Model",
         y=metric_choice,
-        color="model_name",
+        color="Model",
         text_auto=True
     )
 
     fig.update_traces(texttemplate='%{y:.2%}')
     fig.update_layout(
-        xaxis_title="Model Name",
+        xaxis_title="Model",
         yaxis_title=selected_metric_label,
         yaxis_tickformat=".0%"
     )
@@ -268,41 +276,68 @@ with tab3:
         time_label = "Training Time (Seconds)"
 
     if memory_unit == "MB":
-        efficiency_df["memory_display"] = efficiency_df["peak_gpu_usage"] * 1000
-        memory_label = "Peak GPU Memory Usage (MB)"
+        efficiency_df["gpu_memory_display"] = efficiency_df["peak_gpu_usage"] * 1000
+        efficiency_df["cpu_memory_display"] = efficiency_df["peak_cpu_usage"] * 1000
+        gpu_memory_label = "Peak GPU Memory Usage (MB)"
+        cpu_memory_label = "Peak CPU Memory Usage (MB)"
     else:
-        efficiency_df["memory_display"] = efficiency_df["peak_gpu_usage"]
-        memory_label = "Peak GPU Memory Usage (GB)"
+        efficiency_df["gpu_memory_display"] = efficiency_df["peak_gpu_usage"]
+        efficiency_df["cpu_memory_display"] = efficiency_df["peak_cpu_usage"]
+        gpu_memory_label = "Peak GPU Memory Usage (GB)"
+        cpu_memory_label = "Peak CPU Memory Usage (GB)"
+
+    # Rename columns for display
+    efficiency_display = efficiency_df.rename(columns={
+        "model_name": "Model",
+        "train_time_display": "Training Time",
+        "gpu_memory_display": gpu_memory_label,
+        "cpu_memory_display": cpu_memory_label
+    })
 
     st.subheader("Training Time Comparison")
 
     fig = px.bar(
-        efficiency_df,
-        x="model_name",
-        y="train_time_display",
-        color="model_name",
+        efficiency_display,
+        x="Model",
+        y="Training Time",
+        color="Model",
         text_auto=True,
         title=time_label
     )
 
     fig.update_traces(texttemplate='%{y:.2f}')
-    fig.update_layout(xaxis_title="Model Name", yaxis_title=time_label)
+    fig.update_layout(xaxis_title="Model", yaxis_title="Training Time")
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Peak GPU Memory Usage")
 
     fig2 = px.bar(
-        efficiency_df,
-        x="model_name",
-        y="memory_display",
-        color="model_name",
+        efficiency_display,
+        x="Model",
+        y=gpu_memory_label,
+        color="Model",
         text_auto=True,
-        title=memory_label
+        title=gpu_memory_label
     )
 
     fig2.update_traces(texttemplate='%{y:.2f}')
-    fig2.update_layout(xaxis_title="Model Name", yaxis_title=memory_label)
+    fig2.update_layout(xaxis_title="Model", yaxis_title=gpu_memory_label)
     st.plotly_chart(fig2, use_container_width=True)
+
+    st.subheader("Peak CPU Memory Usage")
+
+    fig3 = px.bar(
+        efficiency_display,
+        x="Model",
+        y=cpu_memory_label,
+        color="Model",
+        text_auto=True,
+        title=cpu_memory_label
+    )
+
+    fig3.update_traces(texttemplate='%{y:.2f}')
+    fig3.update_layout(xaxis_title="Model", yaxis_title=cpu_memory_label)
+    st.plotly_chart(fig3, use_container_width=True)
 
 # =================================================
 # TAB 4 — TRAINING CURVES
@@ -337,13 +372,20 @@ with tab4:
     
     st.info("ⓘ Early stopping is configured with patience of 2 epochs.")
 
+    curves_df_display = filtered_curves.rename(columns={
+        "model_name": "Model",
+        "epoch": "Epoch",
+        "training_loss": "Training Loss",
+        "validation_loss": "Validation Loss"
+    })
+
     st.subheader("Training Loss")
 
     fig = px.line(
-        filtered_curves,
-        x="epoch",
-        y="training_loss",
-        color="model_name",
+        curves_df_display,
+        x="Epoch",
+        y="Training Loss",
+        color="Model",
         markers=True
     )
 
@@ -353,10 +395,10 @@ with tab4:
     st.subheader("Validation Loss")
 
     fig2 = px.line(
-        filtered_curves,
-        x="epoch",
-        y="validation_loss",
-        color="model_name",
+        curves_df_display,
+        x="Epoch",
+        y="Validation Loss",
+        color="Model",
         markers=True
     )
 
@@ -377,9 +419,14 @@ with tab5:
         confusion_df["model_name"] == selected_cm_model
     ]
 
-    matrix = cm_df_model.pivot(
-        index="true_label",
-        columns="predicted_label",
+    cm_display = cm_df_model.rename(columns={
+        "true_label": "True Label",
+        "predicted_label": "Predicted Label"
+    })
+
+    matrix = cm_display.pivot(
+        index="True Label",
+        columns="Predicted Label",
         values="count"
     )
 
