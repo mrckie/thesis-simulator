@@ -6,7 +6,9 @@ import time
 from utils.data_loader import (
     load_summary,
     load_curves,
-    load_confusion
+    load_confusion,
+    load_dataset_info,
+    load_class_imbalance
 )
 
 # -------------------------------------------------
@@ -17,32 +19,93 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Model Compression Evaluation Dashboard")
+# --- CSS FOR BIG UPLOAD BUTTON & ALIGNMENT ---
+st.markdown("""
+<style>
+    /* 1. Target the file uploader section to make it massive */
+    div[data-testid="stFileUploader"] section {
+        min-height: 300px !important; 
+        padding: 50px !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important; 
+        border-width: 2px !important; 
+        width: 100% !important; /* Stretch to fill container */
+    }
+    
+    /* Force inner divs of the dropzone to center */
+    div[data-testid="stFileUploader"] section > div {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    
+    /* 2. Make the 'Browse files' button bigger and centered */
+    div[data-testid="stFileUploader"] button {
+        height: 60px !important;
+        font-size: 20px !important;
+        font-weight: bold !important;
+        padding: 0 30px !important;
+        margin: 0 auto !important;
+    }
+    
+    /* 3. Center subheaders */
+    h3, .stSubheader {
+        text-align: center !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------------------------
-# SIDEBAR — DATASET UPLOAD
+# Page Title - Centered via HTML
 # -------------------------------------------------
-st.sidebar.header("Dataset Upload")
+st.markdown("<h1 style='text-align: center;'>Model Compression Evaluation Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
-uploaded_file = st.sidebar.file_uploader(
-    "Upload Dataset (GoEmotions Only)",
-    type=["csv"]
-)
 
-if uploaded_file is None:
-    st.warning("Please upload the GoEmotions dataset to proceed.")
-    st.stop()
+# =================================================
+# MAIN PANEL LAYOUT (8% Left | 84% Center | 8% Right)
+# =================================================
+col_left, col_main, col_right = st.columns([8, 84, 8])
 
-if "goemotions" not in uploaded_file.name.lower():
-    st.error("Invalid dataset. Please upload the GoEmotions dataset used during training.")
-    st.stop()
-else:
-    if "uploaded" not in st.session_state:
-        success_placeholder = st.sidebar.empty()
-        success_placeholder.success("GoEmotions dataset uploaded successfully.")
-        time.sleep(1)
-        success_placeholder.empty()
-        st.session_state.uploaded = True
+with col_main:
+    # We wrap the uploader and info box in a single container
+    main_container = st.container()
+    
+    with main_container:
+        st.markdown("<h2 style='text-align: center; color: white;'>Dataset Upload</h2>", unsafe_allow_html=True)
+        
+        # Hidden label so the text inside the dropzone stays perfectly centered
+        uploaded_file = st.file_uploader(
+            "Upload Dataset (GoEmotions Only) to proceed",
+            type=["csv"],
+            label_visibility="hidden" 
+        )
+        
+        # -------------------------------------------------
+        # NOTIFICATIONS 
+        # -------------------------------------------------
+        if uploaded_file is None:
+            st.info("Please upload the GoEmotions dataset used during experiment.")
+            st.stop()
+
+        if "goemotions" not in uploaded_file.name.lower():
+            st.error("Invalid dataset. Please upload the GoEmotions dataset used during experiment.")
+            st.stop()
+        else:
+            if "uploaded" not in st.session_state:
+                success_placeholder = st.empty()
+                success_placeholder.success("GoEmotions dataset uploaded successfully. Loading dashboard...")
+                time.sleep(1)
+                success_placeholder.empty()
+                st.session_state.uploaded = True
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+
+st.divider()
 
 # -------------------------------------------------
 # Load Experiment Data
@@ -50,59 +113,285 @@ else:
 summary_df = load_summary()
 curves_df = load_curves()
 confusion_df = load_confusion()
+dataset_info_df = load_dataset_info()
+class_imbalance_df = load_class_imbalance()
 
-# -------------------------------------------------
-# Model Selection (global)
-# -------------------------------------------------
-st.sidebar.header("Model Selection")
+# FIX: Replace all Pandas NaN values with the string "N/A"
+summary_df = summary_df.fillna("N/A")
+curves_df = curves_df.fillna("N/A")
+confusion_df = confusion_df.fillna("N/A")
+dataset_info_df = dataset_info_df.fillna("N/A")
 
-selected_models = st.sidebar.multiselect(
-    "Select Models to Compare",
-    options=summary_df["model_name"].unique(),
-    default=summary_df["model_name"].unique()[:2]
+
+# =================================================
+# EXPERIMENT PIPELINE
+# =================================================
+st.markdown("<h1 style='text-align: center;'>Experiment Pipeline</h1>", unsafe_allow_html=True)
+
+st.info(
+"""
+The experiment follows multiple phases based on the objectives:
+
+Phase 1 — Match Baseline Training Setup  
+Train the original DistilBERT using the 58k dataset to observe its training behavior.
+
+Phase 2 — Reduced Dataset Investigation  
+Reduce the dataset to 12.5k with the same architecture and hyperparameters to simulate a low-resource condition.
+
+Phase 3 — Strong Baseline Construction  
+Build a controlled baseline after identifying issues during analysis to ensure stable and fair comparison.
+
+Phase 4 — Architectural Reduction  
+Reduce attention heads and FFN size, then compare all models using the same dataset, preprocessing, and splits.
+"""
 )
 
-if len(selected_models) < 2:
-    st.warning("Select at least two models.")
-    st.stop()
+st.divider()
 
-# Filtered Data
-filtered_summary = summary_df[
-    summary_df["model_name"].isin(selected_models)
-]
+# -------------------------------------------------------------------------
+# PART 1: BASELINE ANALYSIS
+# -------------------------------------------------------------------------
+st.markdown("<h1 style='text-align: center;'>Baseline Analysis</h1>", unsafe_allow_html=True)
 
-filtered_curves = curves_df[
-    curves_df["model_name"].isin(selected_models)
-]
+baseline_names = ["baseline_58k_analysis", "baseline_12.5k_analysis"]
+baseline_summary = summary_df[summary_df["model_name"].isin(baseline_names)].copy()
 
-# -------------------------------------------------
-# TABS
-# -------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Overview",
-    "Performance",
+# Define Tabs specific to Part 1 (No Efficiency tab)
+base_tab1, base_tab2, base_tab3, base_tab4 = st.tabs([
+    "Dataset Configuration",
+    "Classification Performance",
+    "Training Curves",
+    "Confusion Matrix"
+])
+
+# --- TAB 1: DATASET CONFIGURATION & IMBALANCE ---
+with base_tab1:
+    st.markdown("### Dataset Configuration")
+
+    dataset_df = dataset_info_df.copy()
+    dataset_df = dataset_df.rename(columns={
+        "dataset": "Dataset",
+        "total": "Total Samples",
+        "train": "Train",
+        "val": "Validation",
+        "test": "Test"
+    })
+    dataset_df["Dataset"] = dataset_df["Dataset"].map({
+        "baseline_58k_analysis": "58k Baseline Analysis",
+        "baseline_12.5k_analysis": "12.5k Baseline Analysis",
+    })
+
+    plot_df = dataset_df.melt(
+        id_vars="Dataset",
+        value_vars=["Train", "Validation", "Test"], 
+        var_name="Split",
+        value_name="Samples"
+    )
+    plot_df["Samples"] = pd.to_numeric(plot_df["Samples"], errors='coerce')
+    plot_df = plot_df.dropna(subset=["Samples"])
+
+    fig_dataset = px.bar(
+        plot_df, x="Dataset", y="Samples", color="Split", barmode="group", text="Samples"
+    )
+    fig_dataset.update_traces(textposition='outside')
+    fig_dataset.update_layout(xaxis_title="Dataset", yaxis_title="Number of Samples", yaxis_range=[0, plot_df["Samples"].max() * 1.2])
+    st.plotly_chart(fig_dataset, use_container_width=True)
+
+    st.markdown("### Class Imbalance")
+
+    imbalance_df = class_imbalance_df.copy()
+    imbalance_df['Dataset'] = imbalance_df['dataset'].map({
+        "baseline_58k_analysis": "58k Baseline Analysis",
+        "baseline_12.5k_analysis": "12.5k Baseline Analysis",
+    })
+    imbalance_df = imbalance_df.dropna(subset=['Dataset'])
+    imbalance_df['Class'] = imbalance_df['target'].map({0: "Negative", 1: "Positive"})
+    imbalance_df['Proportion (%)'] = (imbalance_df['proportion'] * 100).round(1)
+
+    fig_imbalance = px.bar(
+        imbalance_df, x="Dataset", y="Proportion (%)", color="Class", barmode="group", text="Proportion (%)"
+    )
+    fig_imbalance.update_traces(textposition='outside')
+    fig_imbalance.update_layout(xaxis_title="Dataset", yaxis_title="Proportion (%)", yaxis_range=[0, 115])
+    st.plotly_chart(fig_imbalance, use_container_width=True)
+
+# --- TAB 2: CLASSIFICATION REPORTS ---
+with base_tab2:
+    st.markdown("### Classification Performance")
+
+    class_report_table = baseline_summary[
+        ["model_name", "accuracy", "precision_macro_avg", "recall_macro_avg", "f1_macro_avg", 
+         "precision_weighted_avg", "recall_weighted_avg", "f1_weighted_avg"]
+    ].rename(columns={
+        "model_name": "Model",
+        "accuracy": "Accuracy",
+        "precision_macro_avg": "Precision (Macro)",
+        "recall_macro_avg": "Recall (Macro)",
+        "f1_macro_avg": "F1 (Macro)",
+        "precision_weighted_avg": "Precision (Weighted)",
+        "recall_weighted_avg": "Recall (Weighted)",
+        "f1_weighted_avg": "F1 (Weighted)"
+    })
+
+    # Format to percentages
+    for col in class_report_table.columns[1:]:
+        class_report_table[col] = (pd.to_numeric(class_report_table[col], errors='coerce') * 100).round(2).astype(str) + "%"
+        
+    st.dataframe(class_report_table, use_container_width=True)
+
+
+# --- TAB 3: TRAINING CURVES ---
+with base_tab3:
+    st.markdown("### Training Curves")
+
+    # Isolate baseline curves
+    base_curves = curves_df[curves_df["model_name"].isin(baseline_names)].copy()
+    base_curves["training_loss"] = pd.to_numeric(base_curves["training_loss"], errors='coerce')
+    base_curves["validation_loss"] = pd.to_numeric(base_curves["validation_loss"], errors='coerce')
+
+    col_c1, col_c2 = st.columns(2)
+
+    with col_c1:
+        st.write("**58k Baseline**")
+        curve_58k = base_curves[base_curves["model_name"] == "baseline_58k_analysis"]
+        if not curve_58k.empty:
+            # 58k only has training loss, val is N/A
+            fig_c1 = px.line(curve_58k, x="epoch", y=["training_loss"], markers=True)
+            fig_c1.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
+            st.plotly_chart(fig_c1, use_container_width=True)
+            
+    with col_c2:
+        st.write("**12.5k Baseline**")
+        curve_12k = base_curves[base_curves["model_name"] == "baseline_12.5k_analysis"]
+        if not curve_12k.empty:
+            fig_c2 = px.line(curve_12k, x="epoch", y=["training_loss", "validation_loss"], markers=True)
+            fig_c2.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
+            st.plotly_chart(fig_c2, use_container_width=True)
+
+# --- TAB 4: CONFUSION MATRICES ---
+with base_tab4:
+    st.markdown("### Confusion Matrices")
+
+    cm_base = confusion_df[confusion_df["model_name"].isin(baseline_names)].copy()
+
+    col_m1, col_m2 = st.columns(2)
+
+    with col_m1:
+        st.write("**58k Baseline CM**")
+        cm_58k = cm_base[cm_base["model_name"] == "baseline_58k_analysis"]
+        if not cm_58k.empty:
+            matrix_58k = cm_58k.pivot(index="true_label", columns="predicted_label", values="count")
+            fig_m1 = px.imshow(matrix_58k, text_auto=True, color_continuous_scale="Blues")
+            fig_m1.update_layout(xaxis_title="Predicted", yaxis_title="True")
+            st.plotly_chart(fig_m1, use_container_width=True)
+
+    with col_m2:
+        st.write("**12.5k Baseline CM**")
+        cm_12k = cm_base[cm_base["model_name"] == "baseline_12.5k_analysis"]
+        if not cm_12k.empty:
+            matrix_12k = cm_12k.pivot(index="true_label", columns="predicted_label", values="count")
+            fig_m2 = px.imshow(matrix_12k, text_auto=True, color_continuous_scale="Blues")
+            fig_m2.update_layout(xaxis_title="Predicted", yaxis_title="True")
+            st.plotly_chart(fig_m2, use_container_width=True)
+
+st.divider()
+
+# -------------------------------------------------------------------------
+# PART 2: BASELINE VS MODIFIED COMPARISON
+# -------------------------------------------------------------------------
+st.markdown("<h1 style='text-align: center;'>Baseline vs Modified Architectures</h1>", unsafe_allow_html=True)
+
+
+# --- GLOBAL ENVIRONMENT & MODEL SELECTION ---
+st.markdown("### Environment & Model Selection")
+
+env_col, mod_col = st.columns(2)
+
+with env_col:
+    selected_environment = st.selectbox(
+        "Select Environment",
+        options=["gpu_t4", "cpu_default"],
+        index=0
+    )
+
+# Filter Data by Environment immediately
+env_summary = summary_df[summary_df["environment"].isin([selected_environment, "N/A"])]
+
+# 1. Get all unique models for the environment
+all_env_models = env_summary["model_name"].unique()
+
+# 2. Filter out the analysis baselines so they don't appear in the dropdown
+models_to_hide = ["baseline_58k_analysis", "baseline_12.5k_analysis"]
+available_models = [m for m in all_env_models if m not in models_to_hide]
+
+# 3. Define your desired defaults
+desired_defaults = ["baseline_12.5k_comparison", "33.33% reduction"]
+
+# Safety check: Only apply defaults if they actually exist in the available options
+valid_defaults = [m for m in desired_defaults if m in available_models]
+
+with mod_col:
+    selected_models = st.multiselect(
+        "Select Models to Compare / Show",
+        options=available_models,
+        default=valid_defaults
+    )
+
+
+st.divider()
+
+# -------------------------------------------------------------------------
+# GLOBAL DATA FILTERING
+# -------------------------------------------------------------------------
+
+# Final Filtered Data based on selected models
+filtered_summary = env_summary[env_summary["model_name"].isin(selected_models)]
+
+env_curves = curves_df[curves_df["environment"].isin([selected_environment, "N/A"])]
+filtered_curves = env_curves[env_curves["model_name"].isin(selected_models)]
+
+env_confusion = confusion_df[confusion_df["environment"].isin([selected_environment, "N/A"])]
+filtered_confusion = env_confusion[env_confusion["model_name"].isin(selected_models)]
+
+
+st.divider()
+
+# Define Tabs specific to Part 2
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Performance Comparison",
     "Efficiency",
     "Training Curves",
     "Confusion Matrix"
 ])
 
+
 # =================================================
-# TAB 1 — OVERVIEW
+# TAB 1 — PERFORMANCE COMPARISON 
 # =================================================
 with tab1:
+    st.markdown("### Comparison Options")
 
     col1, col2 = st.columns(2)
 
     with col1:
         metric_choice = st.selectbox(
-            "Select Primary Performance Metric",
-            ["Accuracy", "F1 Score (Weighted Average)", "F1 Score (Macro Average)"]
+            "Primary Performance Metric",
+            [
+                "Accuracy",
+                "F1 Score (Weighted Average)",
+                "F1 Score (Macro Average)"
+            ],
+            key="perf_metric"
         )
 
     with col2:
         sort_by = st.selectbox(
             "Sort Models By",
-            ["Reduction (%)", "Accuracy", "Parameter Count"]
+            [
+                "Reduction (%)",
+                "Accuracy",
+                "Parameter Count"
+            ]
         )
 
     metric_mapping = {
@@ -117,9 +406,22 @@ with tab1:
         "Parameter Count": "parameter_count"
     }
 
+    # FIX 1: Safely copy and cast columns to pure numeric before sorting
+    filtered_summary = filtered_summary.copy()
+    
+    # Strip commas from parameter count and cast to float
+    filtered_summary["parameter_count"] = filtered_summary["parameter_count"].astype(str).str.replace(',', '', regex=False)
+    filtered_summary["parameter_count"] = pd.to_numeric(filtered_summary["parameter_count"], errors='coerce').fillna(0)
+    
+    # Ensure accuracy and reduction are numeric
+    filtered_summary["accuracy"] = pd.to_numeric(filtered_summary["accuracy"], errors='coerce').fillna(0)
+    filtered_summary["reduction_percent"] = pd.to_numeric(filtered_summary["reduction_percent"], errors='coerce').fillna(0)
+
+    # Now it is safe to sort!
     sorted_df = filtered_summary.sort_values(sort_mapping[sort_by])
 
-    st.subheader("Architecture Configuration")
+    # --- ARCHITECTURE TABLE ---
+    st.markdown("### Architecture Configuration")
 
     architecture_table = sorted_df[
         [
@@ -132,51 +434,52 @@ with tab1:
             "trained_epochs"
         ]
     ].rename(columns={
-        "model_name": "Model Name",
+        "model_name": "Model",
         "reduction_percent": "Reduction (%)",
-        "attention_heads": "Attention Heads",
-        "hidden_dim": "Hidden Dimension",
-        "ffn": "FFN Size",
-        "parameter_count": "Parameter Count",
-        "trained_epochs": "Trained Epochs"
+        "attention_heads": "Heads",
+        "hidden_dim": "Hidden",
+        "ffn": "FFN",
+        "parameter_count": "Parameters",
+        "trained_epochs": "Epochs"
     })
 
-    st.dataframe(architecture_table, use_container_width=True)
+    st.dataframe(architecture_table.fillna("N/A"), use_container_width=True)
 
-    st.subheader("Performance vs Model Size")
+    # --- PERFORMANCE VS SIZE ---
+    st.markdown("### Performance vs Model Size")
 
+    # FIX 2: Dynamically rename the selected metric column so Plotly always finds it
     overview_df = sorted_df.rename(columns={
-        "accuracy": "Accuracy",
+        metric_mapping[metric_choice]: metric_choice,
         "parameter_count": "Parameter Count",
         "model_name": "Model"
     })
 
-    fig = px.line(
+    # The y-axis is now whatever the user actually selected
+    y_metric = metric_choice 
+
+    # Plotly Line Chart
+    fig_perf = px.line(
         overview_df,
         x="Parameter Count",
-        y="Accuracy",
+        y=y_metric,
         text="Model",
         markers=True,
         title=f"{metric_choice} vs Parameter Count"
     )
 
-    fig.update_traces(
-        textposition="top center",
-        texttemplate='%{y:.2%}'  # Display as percentage
-    )
-    fig.update_layout(
+    fig_perf.update_traces(textposition="top center")
+    fig_perf.update_layout(
         xaxis_title="Parameter Count",
         yaxis_title=metric_choice,
-        yaxis_tickformat=".0%"  # Percentage format
+        yaxis_tickformat=".2%"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
-
-# =================================================
-# TAB 2 — PERFORMANCE
-# =================================================
-with tab2:
-
+    st.plotly_chart(fig_perf, use_container_width=True)
+    
+    # --- DETAILED PERFORMANCE BARS ---
+    st.markdown("### Detailed Metric Comparison")
+    
     metric_options = {
         "Accuracy": "accuracy",
         "Precision (Weighted Average)": "precision_weighted_avg",
@@ -188,34 +491,35 @@ with tab2:
     }
 
     selected_metric_label = st.selectbox(
-        "Select Performance Metric",
+        "Select Detailed Metric",
         list(metric_options.keys())
     )
 
-    metric_choice = metric_options[selected_metric_label]
-
-    st.subheader(f"{selected_metric_label} Comparison Across Models")
+    detailed_metric_choice = metric_options[selected_metric_label]
 
     perf_df = filtered_summary.rename(columns={"model_name": "Model"})
+    
+    # FIX: Ensure the detailed metric is numeric before charting
+    perf_df[detailed_metric_choice] = pd.to_numeric(perf_df[detailed_metric_choice], errors='coerce').fillna(0)
 
-    fig = px.bar(
+    fig_detailed = px.bar(
         perf_df,
         x="Model",
-        y=metric_choice,
+        y=detailed_metric_choice,
         color="Model",
         text_auto=True
     )
 
-    fig.update_traces(texttemplate='%{y:.2%}')
-    fig.update_layout(
+    fig_detailed.update_traces(texttemplate='%{y:.2%}')
+    fig_detailed.update_layout(
         xaxis_title="Model",
         yaxis_title=selected_metric_label,
         yaxis_tickformat=".0%"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_detailed, use_container_width=True)
 
-    st.subheader("Detailed Classification Metrics")
+    st.markdown("#### Classification Metrics Table")
 
     classification_table = filtered_summary[
         [
@@ -242,14 +546,15 @@ with tab2:
     # Convert decimal to percentage for display
     classification_table_pct = classification_table.copy()
     for col in classification_table.columns[1:]:
-        classification_table_pct[col] = (classification_table_pct[col] * 100).round(2).astype(str) + "%"
+        classification_table_pct[col] = (pd.to_numeric(classification_table_pct[col], errors='coerce') * 100).round(2).astype(str) + "%"
 
     st.dataframe(classification_table_pct, use_container_width=True)
 
+
 # =================================================
-# TAB 3 — EFFICIENCY
+# TAB 2 — EFFICIENCY
 # =================================================
-with tab3:
+with tab2:
 
     col1, col2 = st.columns(2)
 
@@ -265,8 +570,12 @@ with tab3:
             ["MB", "GB"]
         )
 
-    # Prepare data for training time
     efficiency_df = filtered_summary.copy()
+    
+    # Safely convert to numeric before doing math
+    efficiency_df["train_time"] = pd.to_numeric(efficiency_df["train_time"], errors='coerce').fillna(0)
+    efficiency_df["peak_gpu_usage"] = pd.to_numeric(efficiency_df["peak_gpu_usage"], errors='coerce').fillna(0)
+    efficiency_df["peak_ram_usage"] = pd.to_numeric(efficiency_df["peak_ram_usage"], errors='coerce').fillna(0)
     
     if time_unit == "Minutes":
         efficiency_df["train_time_display"] = efficiency_df["train_time"] / 60
@@ -277,16 +586,15 @@ with tab3:
 
     if memory_unit == "MB":
         efficiency_df["gpu_memory_display"] = efficiency_df["peak_gpu_usage"] * 1000
-        efficiency_df["cpu_memory_display"] = efficiency_df["peak_cpu_usage"] * 1000
+        efficiency_df["cpu_memory_display"] = efficiency_df["peak_ram_usage"] * 1000
         gpu_memory_label = "Peak GPU Memory Usage (MB)"
         cpu_memory_label = "Peak CPU Memory Usage (MB)"
     else:
         efficiency_df["gpu_memory_display"] = efficiency_df["peak_gpu_usage"]
-        efficiency_df["cpu_memory_display"] = efficiency_df["peak_cpu_usage"]
+        efficiency_df["cpu_memory_display"] = efficiency_df["peak_ram_usage"]
         gpu_memory_label = "Peak GPU Memory Usage (GB)"
         cpu_memory_label = "Peak CPU Memory Usage (GB)"
 
-    # Rename columns for display
     efficiency_display = efficiency_df.rename(columns={
         "model_name": "Model",
         "train_time_display": "Training Time",
@@ -304,7 +612,6 @@ with tab3:
         text_auto=True,
         title=time_label
     )
-
     fig.update_traces(texttemplate='%{y:.2f}')
     fig.update_layout(xaxis_title="Model", yaxis_title="Training Time")
     st.plotly_chart(fig, use_container_width=True)
@@ -319,7 +626,6 @@ with tab3:
         text_auto=True,
         title=gpu_memory_label
     )
-
     fig2.update_traces(texttemplate='%{y:.2f}')
     fig2.update_layout(xaxis_title="Model", yaxis_title=gpu_memory_label)
     st.plotly_chart(fig2, use_container_width=True)
@@ -334,19 +640,17 @@ with tab3:
         text_auto=True,
         title=cpu_memory_label
     )
-
     fig3.update_traces(texttemplate='%{y:.2f}')
     fig3.update_layout(xaxis_title="Model", yaxis_title=cpu_memory_label)
     st.plotly_chart(fig3, use_container_width=True)
 
 # =================================================
-# TAB 4 — TRAINING CURVES
+# TAB 3 — TRAINING CURVES
 # =================================================
-with tab4:
+with tab3:
 
     st.subheader("Epochs Configuration")
     
-    # Create a table showing hyperparameter epochs vs actual epochs with early stopping
     epochs_info = filtered_summary[
         ["model_name", "epochs", "trained_epochs"]
     ].rename(columns={
@@ -355,24 +659,33 @@ with tab4:
         "trained_epochs": "Actual Epochs (with Early Stopping)"
     }).drop_duplicates()
     
+    # Safely handle numeric conversion
+    for col in ["Actual Epochs (with Early Stopping)", "Hyperparameter Epochs"]:
+        epochs_info[col] = pd.to_numeric(epochs_info[col], errors='coerce').fillna(0)
+    
     col1, col2, col3 = st.columns(3)
     for idx, row in epochs_info.iterrows():
+        actual = int(row['Actual Epochs (with Early Stopping)'])
+        hyper = int(row['Hyperparameter Epochs'])
+        delta_val = actual - hyper
+        
         if idx % 3 == 0:
             with col1:
-                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
-                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
         elif idx % 3 == 1:
             with col2:
-                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
-                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
         else:
             with col3:
-                st.metric(row["Model Name"], f"{int(row['Actual Epochs (with Early Stopping)'])}/{int(row['Hyperparameter Epochs'])}", 
-                         delta=f"{int(row['Actual Epochs (with Early Stopping)']) - int(row['Hyperparameter Epochs'])} epochs")
+                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
     
     st.info("ⓘ Early stopping is configured with patience of 2 epochs.")
 
-    curves_df_display = filtered_curves.rename(columns={
+    curves_df_display = filtered_curves.copy()
+    curves_df_display["training_loss"] = pd.to_numeric(curves_df_display["training_loss"], errors='coerce').fillna(0)
+    curves_df_display["validation_loss"] = pd.to_numeric(curves_df_display["validation_loss"], errors='coerce').fillna(0)
+    
+    curves_df_display = curves_df_display.rename(columns={
         "model_name": "Model",
         "epoch": "Epoch",
         "training_loss": "Training Loss",
@@ -388,7 +701,6 @@ with tab4:
         color="Model",
         markers=True
     )
-
     fig.update_layout(xaxis_title="Epoch", yaxis_title="Training Loss")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -401,23 +713,25 @@ with tab4:
         color="Model",
         markers=True
     )
-
     fig2.update_layout(xaxis_title="Epoch", yaxis_title="Validation Loss")
     st.plotly_chart(fig2, use_container_width=True)
 
 # =================================================
-# TAB 5 — CONFUSION MATRIX
+# TAB 4 — CONFUSION MATRIX
 # =================================================
-with tab5:
+with tab4:
 
     selected_cm_model = st.selectbox(
         "Select Model",
         selected_models
     )
 
-    cm_df_model = confusion_df[
-        confusion_df["model_name"] == selected_cm_model
-    ]
+    cm_df_model = filtered_confusion[
+        filtered_confusion["model_name"] == selected_cm_model
+    ].copy()
+
+    # FIX 3: Ensure count is strictly numeric before Plotly generates the heatmap
+    cm_df_model["count"] = pd.to_numeric(cm_df_model["count"], errors='coerce').fillna(0)
 
     cm_display = cm_df_model.rename(columns={
         "true_label": "True Label",

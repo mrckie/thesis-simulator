@@ -1,25 +1,41 @@
-model_name,true_label,predicted_label,count
-baseline,0,0,517
-baseline,0,1,108
-baseline,1,0,105
-baseline,1,1,270
-16.67% reduction,0,0,520
-16.67% reduction,0,1,105
-16.67% reduction,1,0,156
-16.67% reduction,1,1,219
-25% reduction,0,0,518
-25% reduction,0,1,107
-25% reduction,1,0,151
-25% reduction,1,1,224
-33.33% reduction,0,0,533
-33.33% reduction,0,1,92
-33.33% reduction,1,0,191
-33.33% reduction,1,1,184
-41.67% reduction,0,0,519
-41.67% reduction,0,1,106
-41.67% reduction,1,0,174
-41.67% reduction,1,1,201
-50% reduction,0,0,472
-50% reduction,0,1,153
-50% reduction,1,0,140
-50% reduction,1,1,235
+model_name,environment,true_label,predicted_label,count
+baseline_58k_analysis,n/a,0,0,10631
+baseline_58k_analysis,n/a,0,1,208
+baseline_58k_analysis,n/a,1,0,560
+baseline_58k_analysis,n/a,1,1,201
+baseline_12.5k_analysis,n/a,0,0,1133
+baseline_12.5k_analysis,n/a,0,1,32
+baseline_12.5k_analysis,n/a,1,0,61
+baseline_12.5k_analysis,n/a,1,1,24
+baseline_12.5k_comparison,gpu_t4,0,0,412
+baseline_12.5k_comparison,gpu_t4,0,1,130
+baseline_12.5k_comparison,gpu_t4,1,0,122
+baseline_12.5k_comparison,gpu_t4,1,1,586
+33.33% reduction,gpu_t4,0,0,400
+33.33% reduction,gpu_t4,0,1,142
+33.33% reduction,gpu_t4,1,0,172
+33.33% reduction,gpu_t4,1,1,536
+41.67% reduction,gpu_t4,0,0,431
+41.67% reduction,gpu_t4,0,1,111
+41.67% reduction,gpu_t4,1,0,221
+41.67% reduction,gpu_t4,1,1,487
+50% reduction,gpu_t4,0,0,440
+50% reduction,gpu_t4,0,1,102
+50% reduction,gpu_t4,1,0,234
+50% reduction,gpu_t4,1,1,474
+baseline_12.5k_comparison,cpu_default,0,0,421
+baseline_12.5k_comparison,cpu_default,0,1,121
+baseline_12.5k_comparison,cpu_default,1,0,148
+baseline_12.5k_comparison,cpu_default,1,1,560
+33.33% reduction,cpu_default,0,0,377
+33.33% reduction,cpu_default,0,1,165
+33.33% reduction,cpu_default,1,0,176
+33.33% reduction,cpu_default,1,1,532
+41.67% reduction,cpu_default,0,0,374
+41.67% reduction,cpu_default,0,1,168
+41.67% reduction,cpu_default,1,0,151
+41.67% reduction,cpu_default,1,1,557
+50% reduction,cpu_default,0,0,338
+50% reduction,cpu_default,0,1,204
+50% reduction,cpu_default,1,0,131
+50% reduction,cpu_default,1,1,577

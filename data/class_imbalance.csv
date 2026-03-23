@@ -1,0 +1,7 @@
+dataset,target,count,proportion
+baseline_58k_analysis,0,54195,0.934397
+baseline_58k_analysis,1,3805,0.065603
+baseline_12.5k_analysis,0,11649,0.93192
+baseline_12.5k_analysis,1,851,0.06808
+baseline_12.5k_comparison,0,7075,0.566
+baseline_12.5k_comparison,1,5425,0.434
