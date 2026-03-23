@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import time
+from transformers.pipelines import pipeline
 
 from utils.data_loader import (
     load_summary,
@@ -15,7 +16,7 @@ from utils.data_loader import (
 # Page Config
 # -------------------------------------------------
 st.set_page_config(
-    page_title="Model Compression Evaluation Dashboard",
+    page_title="DistilBERT Architectural Optimization Dashboard",
     layout="wide"
 )
 
@@ -61,8 +62,10 @@ st.markdown("""
 # -------------------------------------------------
 # Page Title - Centered via HTML
 # -------------------------------------------------
-st.markdown("<h1 style='text-align: center;'>Model Compression Evaluation Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align: center;'>DistilBERT Architectural Optimization for Sentiment Analysis</h1>",
+    unsafe_allow_html=True
+)
 
 
 # =================================================
@@ -75,7 +78,6 @@ with col_main:
     main_container = st.container()
     
     with main_container:
-        st.markdown("<h2 style='text-align: center; color: white;'>Dataset Upload</h2>", unsafe_allow_html=True)
         
         # Hidden label so the text inside the dropzone stays perfectly centered
         uploaded_file = st.file_uploader(
@@ -116,6 +118,18 @@ confusion_df = load_confusion()
 dataset_info_df = load_dataset_info()
 class_imbalance_df = load_class_imbalance()
 
+# Loading the model from hugging face
+@st.cache_resource(show_spinner="Loading models into memory (this takes a moment)...")
+def load_sentiment_models():
+    # Just the username/repo-name! No https:// or /tree/main
+    baseline_path = "marckieee/baseline" 
+    compressed_path = "marckieee/41.67_percent_reduction" 
+    
+    baseline_pipe = pipeline("text-classification", model=baseline_path, tokenizer=baseline_path)
+    compressed_pipe = pipeline("text-classification", model=compressed_path, tokenizer=compressed_path)
+    
+    return baseline_pipe, compressed_pipe
+
 # FIX: Replace all Pandas NaN values with the string "N/A"
 summary_df = summary_df.fillna("N/A")
 curves_df = curves_df.fillna("N/A")
@@ -126,7 +140,7 @@ dataset_info_df = dataset_info_df.fillna("N/A")
 # =================================================
 # EXPERIMENT PIPELINE
 # =================================================
-st.markdown("<h1 style='text-align: center;'>Experiment Pipeline</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>DistilBERT Optimization Experiment Pipeline</h1>", unsafe_allow_html=True)
 
 st.info(
 """
@@ -337,9 +351,6 @@ with mod_col:
         default=valid_defaults
     )
 
-
-st.divider()
-
 # -------------------------------------------------------------------------
 # GLOBAL DATA FILTERING
 # -------------------------------------------------------------------------
@@ -354,19 +365,19 @@ env_confusion = confusion_df[confusion_df["environment"].isin([selected_environm
 filtered_confusion = env_confusion[env_confusion["model_name"].isin(selected_models)]
 
 
-st.divider()
 
 # Define Tabs specific to Part 2
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Performance Comparison",
-    "Efficiency",
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Predictive Performance",
+    "Computational Efficiency",
     "Training Curves",
-    "Confusion Matrix"
+    "Confusion Matrix",
+    "Sentiment Analysis (Live)"
 ])
 
 
 # =================================================
-# TAB 1 — PERFORMANCE COMPARISON 
+# TAB 1 — Predictive Performance
 # =================================================
 with tab1:
     st.markdown("### Comparison Options")
@@ -375,7 +386,7 @@ with tab1:
 
     with col1:
         metric_choice = st.selectbox(
-            "Primary Performance Metric",
+            "Primary Predictive Performance Metric",
             [
                 "Accuracy",
                 "F1 Score (Weighted Average)",
@@ -446,7 +457,7 @@ with tab1:
     st.dataframe(architecture_table.fillna("N/A"), use_container_width=True)
 
     # --- PERFORMANCE VS SIZE ---
-    st.markdown("### Performance vs Model Size")
+    st.markdown("### Parameter Count vs Accuracy")
 
     # FIX 2: Dynamically rename the selected metric column so Plotly always finds it
     overview_df = sorted_df.rename(columns={
@@ -465,7 +476,6 @@ with tab1:
         y=y_metric,
         text="Model",
         markers=True,
-        title=f"{metric_choice} vs Parameter Count"
     )
 
     fig_perf.update_traces(textposition="top center")
@@ -552,7 +562,7 @@ with tab1:
 
 
 # =================================================
-# TAB 2 — EFFICIENCY
+# TAB 2 — Computational Efficiency
 # =================================================
 with tab2:
 
@@ -679,7 +689,7 @@ with tab3:
             with col3:
                 st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
     
-    st.info("ⓘ Early stopping is configured with patience of 2 epochs.")
+    st.info("ⓘ Early stopping is configured with patience of 3 epochs.")
 
     curves_df_display = filtered_curves.copy()
     curves_df_display["training_loss"] = pd.to_numeric(curves_df_display["training_loss"], errors='coerce').fillna(0)
@@ -757,3 +767,61 @@ with tab4:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+# =================================================
+# TAB 5 — SENTIMENT ANALYSIS (LIVE APPLICATION)
+# =================================================
+with tab5:
+    st.markdown("### Live Sentiment Analysis Application")
+    st.info("Test the baseline and the optimized architecture in a real sentiment analysis inference task.")
+
+    # Get user input
+    user_input = st.text_area(
+        "Enter a review or sentence:", 
+        placeholder="e.g., I feel happy today.",
+        height=100
+    )
+
+    if st.button("Analyze Sentiment", type="primary"):
+        if not user_input.strip():
+            st.warning("Please enter some text to analyze.")
+        else:
+            try:
+                # Load models
+                baseline_model, compressed_model = load_sentiment_models()
+                
+                # Run inference
+                base_result = baseline_model(user_input)[0]
+                comp_result = compressed_model(user_input)[0]
+                
+                # Map 0 and 1 to your actual labels (Change these if your model uses different mappings)
+                label_map = {"LABEL_0": "Negative 🔴", "LABEL_1": "Positive 🟢"}
+                
+                base_label = label_map.get(base_result['label'], base_result['label'])
+                base_score = base_result['score']
+                
+                comp_label = label_map.get(comp_result['label'], comp_result['label'])
+                comp_score = comp_result['score']
+                
+                # Display Results Side-by-Side
+                st.markdown("#### Inference Results")
+                res_col1, res_col2 = st.columns(2)
+                
+                with res_col1:
+                    st.markdown("**Baseline Model**")
+                    st.metric(label="Prediction", value=base_label)
+                    st.progress(base_score, text=f"Confidence: {base_score:.2%}")
+                    
+                with res_col2:
+                    st.markdown("**Optimized Model (41.67% Architecture Reduction)**")
+                    st.metric(label="Prediction", value=comp_label)
+                    st.progress(comp_score, text=f"Confidence: {comp_score:.2%}")
+                    
+                if base_label != comp_label:
+                    st.warning("The models disagree on this sentiment!")
+                else:
+                    st.success("Both models agree on the sentiment!")
+                    
+            except Exception as e:
+                st.error(f"Error loading or running models: {e}")
+                st.markdown("*(Did you remember to replace the 'your-username/...' paths in the code with your actual Hugging Face model IDs?)*")
