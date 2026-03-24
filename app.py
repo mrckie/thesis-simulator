@@ -356,7 +356,13 @@ with mod_col:
 # -------------------------------------------------------------------------
 
 # Final Filtered Data based on selected models
-filtered_summary = env_summary[env_summary["model_name"].isin(selected_models)]
+filtered_summary = env_summary[env_summary["model_name"].isin(selected_models)].copy()
+
+# Safely clean numeric columns globally here so ALL tabs work flawlessly
+filtered_summary["parameter_count"] = filtered_summary["parameter_count"].astype(str).str.replace(',', '', regex=False)
+filtered_summary["parameter_count"] = pd.to_numeric(filtered_summary["parameter_count"], errors='coerce').fillna(0)
+filtered_summary["accuracy"] = pd.to_numeric(filtered_summary["accuracy"], errors='coerce').fillna(0)
+filtered_summary["reduction_percent"] = pd.to_numeric(filtered_summary["reduction_percent"], errors='coerce').fillna(0)
 
 env_curves = curves_df[curves_df["environment"].isin([selected_environment, "N/A"])]
 filtered_curves = env_curves[env_curves["model_name"].isin(selected_models)]
@@ -365,76 +371,31 @@ env_confusion = confusion_df[confusion_df["environment"].isin([selected_environm
 filtered_confusion = env_confusion[env_confusion["model_name"].isin(selected_models)]
 
 
-
-# Define Tabs specific to Part 2
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Predictive Performance",
-    "Computational Efficiency",
-    "Training Curves",
-    "Confusion Matrix",
-    "Sentiment Analysis (Live)"
+# Define Tabs specific to Part 2 (We now have 6 tabs!)
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Architecture & Size",     
+    "Performance Comparison",   
+    "Computational Efficiency",                
+    "Training Curves",          
+    "Confusion Matrix",         
+    "Sentiment Analysis (Live)" 
 ])
 
 
 # =================================================
-# TAB 1 — Predictive Performance
+# TAB 1 — ARCHITECTURE & PARAMETER COUNT
 # =================================================
 with tab1:
-    st.markdown("### Comparison Options")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        metric_choice = st.selectbox(
-            "Primary Predictive Performance Metric",
-            [
-                "Accuracy",
-                "F1 Score (Weighted Average)",
-                "F1 Score (Macro Average)"
-            ],
-            key="perf_metric"
-        )
-
-    with col2:
-        sort_by = st.selectbox(
-            "Sort Models By",
-            [
-                "Reduction (%)",
-                "Accuracy",
-                "Parameter Count"
-            ]
-        )
-
-    metric_mapping = {
-        "Accuracy": "accuracy",
-        "F1 Score (Weighted Average)": "f1_weighted_avg",
-        "F1 Score (Macro Average)": "f1_macro_avg"
-    }
-
-    sort_mapping = {
-        "Reduction (%)": "reduction_percent",
-        "Accuracy": "accuracy",
-        "Parameter Count": "parameter_count"
-    }
-
-    # FIX 1: Safely copy and cast columns to pure numeric before sorting
-    filtered_summary = filtered_summary.copy()
-    
-    # Strip commas from parameter count and cast to float
-    filtered_summary["parameter_count"] = filtered_summary["parameter_count"].astype(str).str.replace(',', '', regex=False)
-    filtered_summary["parameter_count"] = pd.to_numeric(filtered_summary["parameter_count"], errors='coerce').fillna(0)
-    
-    # Ensure accuracy and reduction are numeric
-    filtered_summary["accuracy"] = pd.to_numeric(filtered_summary["accuracy"], errors='coerce').fillna(0)
-    filtered_summary["reduction_percent"] = pd.to_numeric(filtered_summary["reduction_percent"], errors='coerce').fillna(0)
-
-    # Now it is safe to sort!
-    sorted_df = filtered_summary.sort_values(sort_mapping[sort_by])
-
-    # --- ARCHITECTURE TABLE ---
     st.markdown("### Architecture Configuration")
 
-    architecture_table = sorted_df[
+    # Simple sort just for architecture
+    sort_by_arch = st.selectbox("Sort Table By", ["Parameter Count", "Reduction (%)"], key="arch_sort")
+    sort_col = "parameter_count" if sort_by_arch == "Parameter Count" else "reduction_percent"
+    
+    # Sort so the largest model (baseline) sits naturally at the top
+    arch_df = filtered_summary.sort_values(sort_col, ascending=False)
+
+    architecture_table = arch_df[
         [
             "model_name",
             "reduction_percent",
@@ -456,61 +417,58 @@ with tab1:
 
     st.dataframe(architecture_table.fillna("N/A"), use_container_width=True)
 
-    # --- PERFORMANCE VS SIZE ---
-    st.markdown("### Parameter Count vs Accuracy")
-
-    # FIX 2: Dynamically rename the selected metric column so Plotly always finds it
-    overview_df = sorted_df.rename(columns={
-        metric_mapping[metric_choice]: metric_choice,
-        "parameter_count": "Parameter Count",
-        "model_name": "Model"
-    })
-
-    # The y-axis is now whatever the user actually selected
-    y_metric = metric_choice 
-
-    # Plotly Line Chart
-    fig_perf = px.line(
-        overview_df,
-        x="Parameter Count",
-        y=y_metric,
-        text="Model",
-        markers=True,
-    )
-
-    fig_perf.update_traces(textposition="top center")
-    fig_perf.update_layout(
-        xaxis_title="Parameter Count",
-        yaxis_title=metric_choice,
-        yaxis_tickformat=".2%"
-    )
-
-    st.plotly_chart(fig_perf, use_container_width=True)
+    st.markdown("### Model Parameter Count")
     
-    # --- DETAILED PERFORMANCE BARS ---
-    st.markdown("### Detailed Metric Comparison")
-    
-    metric_options = {
-        "Accuracy": "accuracy",
-        "Precision (Weighted Average)": "precision_weighted_avg",
-        "Precision (Macro Average)": "precision_macro_avg",
-        "Recall (Weighted Average)": "recall_weighted_avg",
-        "Recall (Macro Average)": "recall_macro_avg",
-        "F1 Score (Weighted Average)": "f1_weighted_avg",
-        "F1 Score (Macro Average)": "f1_macro_avg"
-    }
-
-    selected_metric_label = st.selectbox(
-        "Select Detailed Metric",
-        list(metric_options.keys())
+    # Replaced the Line Chart with a clean Bar Chart showing only parameters
+    fig_params = px.bar(
+        architecture_table,
+        x="Model",
+        y="Parameters",
+        text="Parameters",
+        color="Model",
     )
+    # Format the text on the bars with commas (e.g., 66,955,010)
+    fig_params.update_traces(texttemplate='%{text:,}', textposition='outside') 
+    fig_params.update_layout(
+        xaxis_title="Model", 
+        yaxis_title="Total Parameters",
+        yaxis_range=[0, architecture_table["Parameters"].max() * 1.2] # Give headroom for the text above the bars
+    )
+    st.plotly_chart(fig_params, use_container_width=True)
 
-    detailed_metric_choice = metric_options[selected_metric_label]
-
-    perf_df = filtered_summary.rename(columns={"model_name": "Model"})
+# =================================================
+# TAB 2 — PREDICTIVE PERFORMANCE COMPARISON 
+# =================================================
+with tab2:
+    st.markdown("### Predictive Performance")
     
-    # FIX: Ensure the detailed metric is numeric before charting
+    col1, col2 = st.columns(2)
+    with col1:
+        metric_options = {
+            "Accuracy": "accuracy",
+            "Precision (Weighted Average)": "precision_weighted_avg",
+            "Precision (Macro Average)": "precision_macro_avg",
+            "Recall (Weighted Average)": "recall_weighted_avg",
+            "Recall (Macro Average)": "recall_macro_avg",
+            "F1 Score (Weighted Average)": "f1_weighted_avg",
+            "F1 Score (Macro Average)": "f1_macro_avg"
+        }
+        selected_metric_label = st.selectbox("Select Metric to Visualize", list(metric_options.keys()))
+        detailed_metric_choice = metric_options[selected_metric_label]
+
+    with col2:
+        sort_by_perf = st.selectbox("Sort Models By", ["Highest Score", "Model Name"], key="perf_sort")
+
+    perf_df = filtered_summary.rename(columns={"model_name": "Model"}).copy()
+    
+    # Ensure the detailed metric is numeric before charting
     perf_df[detailed_metric_choice] = pd.to_numeric(perf_df[detailed_metric_choice], errors='coerce').fillna(0)
+
+    # Apply Sorting logic
+    if sort_by_perf == "Highest Score":
+        perf_df = perf_df.sort_values(detailed_metric_choice, ascending=False)
+    else:
+        perf_df = perf_df.sort_values("Model")
 
     fig_detailed = px.bar(
         perf_df,
@@ -520,16 +478,17 @@ with tab1:
         text_auto=True
     )
 
-    fig_detailed.update_traces(texttemplate='%{y:.2%}')
+    fig_detailed.update_traces(texttemplate='%{y:.2%}', textposition='outside')
     fig_detailed.update_layout(
         xaxis_title="Model",
         yaxis_title=selected_metric_label,
-        yaxis_tickformat=".0%"
+        yaxis_tickformat=".0%",
+        yaxis_range=[0, 1.1] # Gives headroom so the percentage text doesn't get cut off
     )
 
     st.plotly_chart(fig_detailed, use_container_width=True)
 
-    st.markdown("#### Classification Metrics Table")
+    st.markdown("#### Detailed Classification Metrics Table")
 
     classification_table = filtered_summary[
         [
@@ -562,9 +521,9 @@ with tab1:
 
 
 # =================================================
-# TAB 2 — Computational Efficiency
+# TAB 3 — COMPUTATIONAL EFFICIENCY
 # =================================================
-with tab2:
+with tab3:
 
     col1, col2 = st.columns(2)
 
@@ -655,9 +614,12 @@ with tab2:
     st.plotly_chart(fig3, use_container_width=True)
 
 # =================================================
-# TAB 3 — TRAINING CURVES
+# TAB 4 — TRAINING CURVES
 # =================================================
-with tab3:
+# =================================================
+# TAB 4 — TRAINING CURVES
+# =================================================
+with tab4:
 
     st.subheader("Epochs Configuration")
     
@@ -673,21 +635,18 @@ with tab3:
     for col in ["Actual Epochs (with Early Stopping)", "Hyperparameter Epochs"]:
         epochs_info[col] = pd.to_numeric(epochs_info[col], errors='coerce').fillna(0)
     
-    col1, col2, col3 = st.columns(3)
-    for idx, row in epochs_info.iterrows():
+    # FIX: Dynamically create exactly enough columns for the number of models selected
+    num_models = len(epochs_info)
+    cols = st.columns(num_models)
+    
+    # Loop through the columns and place one metric in each
+    for idx, row in epochs_info.reset_index(drop=True).iterrows():
         actual = int(row['Actual Epochs (with Early Stopping)'])
         hyper = int(row['Hyperparameter Epochs'])
         delta_val = actual - hyper
         
-        if idx % 3 == 0:
-            with col1:
-                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
-        elif idx % 3 == 1:
-            with col2:
-                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
-        else:
-            with col3:
-                st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
+        with cols[idx]:
+            st.metric(row["Model Name"], f"{actual}/{hyper}", delta=f"{delta_val} epochs")
     
     st.info("ⓘ Early stopping is configured with patience of 3 epochs.")
 
@@ -727,9 +686,9 @@ with tab3:
     st.plotly_chart(fig2, use_container_width=True)
 
 # =================================================
-# TAB 4 — CONFUSION MATRIX
+# TAB 5 — CONFUSION MATRIX
 # =================================================
-with tab4:
+with tab5:
 
     selected_cm_model = st.selectbox(
         "Select Model",
@@ -769,9 +728,9 @@ with tab4:
     st.plotly_chart(fig, use_container_width=True)
 
 # =================================================
-# TAB 5 — SENTIMENT ANALYSIS (LIVE APPLICATION)
+# TAB 6 — SENTIMENT ANALYSIS (LIVE APPLICATION)
 # =================================================
-with tab5:
+with tab6:
     st.markdown("### Live Sentiment Analysis Application")
     st.info("Test the baseline and the optimized architecture in a real sentiment analysis inference task.")
 
