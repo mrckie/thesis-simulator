@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
+from langdetect import detect, LangDetectException
 
 def render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models_func):
     st.markdown("<h1 style='text-align: center;'>Baseline vs Modified Architectures</h1>", unsafe_allow_html=True)
@@ -179,7 +181,8 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
             fig = px.imshow(matrix, text_auto=True, color_continuous_scale="Blues", title=f"{selected_cm_model} Confusion Matrix")
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- TAB 6: SENTIMENT ANALYSIS ---
+   
+# --- TAB 6: SENTIMENT ANALYSIS ---
     with tab6:
         st.markdown("### Emotion-Based Sentiment Inference")
         st.info(
@@ -191,9 +194,47 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
         user_input = st.text_area("Enter a short sentence expressing emotion or sentiment:", placeholder="e.g., I feel happy today.", height=100)
 
         if st.button("Analyze Sentiment", type="primary"):
+            
+            # ==========================================
+            # INPUT VALIDATION (BETA TESTING CRITERIA)
+            # ==========================================
+            is_valid = True
+            
+            # 1. Check if empty
             if not user_input.strip():
                 st.warning("Please enter some text to analyze.")
-            else:
+                is_valid = False
+                
+            # 2. Check for minimum length (Cannot be just "a" or "ok")
+            elif len(user_input.strip()) < 3:
+                st.warning("Input is too short. Please enter a meaningful sentence expressing an emotion.")
+                is_valid = False
+                
+            # 3. Check for maximum length (Prevents DistilBERT token overflow / crashes)
+            elif len(user_input) > 1000:
+                st.warning("Input is too long! Please limit your text to a short paragraph (under 1000 characters).")
+                is_valid = False
+                
+            # 4. Check for Gibberish/Symbols (Must contain actual alphabetical letters)
+            elif not re.search('[a-zA-Z]', user_input):
+                st.error("Invalid Input: The inputted data consists only of symbols or numbers and does not express emotions.")
+                is_valid = False
+            
+            # 5. Check Language (Must be English)
+            if is_valid:
+                try:
+                    detected_lang = detect(user_input)
+                    if detected_lang != 'en':
+                        st.error(f"Language Error: GoEmotions is an English dataset. Detected language: '{detected_lang}'. Please enter English text only.")
+                        is_valid = False
+                except LangDetectException:
+                    st.error("Unrecognizable Input: Could not detect a valid language. Please enter a meaningful English sentence.")
+                    is_valid = False
+
+            # ==========================================
+            # INFERENCE EXECUTION
+            # ==========================================
+            if is_valid:
                 try:
                     baseline_model, compressed_model = load_sentiment_models_func()
                     

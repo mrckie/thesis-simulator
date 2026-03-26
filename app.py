@@ -87,27 +87,6 @@ def load_sentiment_models():
     return baseline_pipe, compressed_pipe
 
 # -------------------------------------------------
-# Experiment Pipeline Intro
-# -------------------------------------------------
-st.markdown("<h1 style='text-align: center;'>DistilBERT Optimization Experiment Pipeline</h1>", unsafe_allow_html=True)
-st.info("""
-The experiment follows multiple phases based on the objectives:
-
-Phase 1 — Match Baseline Training Setup  
-Train the original DistilBERT using the 58k dataset to observe its training behavior.
-
-Phase 2 — Reduced Dataset Investigation  
-Reduce the dataset to 12.5k with the same architecture and hyperparameters to simulate a low-resource condition.
-
-Phase 3 — Strong Baseline Construction  
-Build a controlled baseline after identifying issues during analysis to ensure stable and fair comparison.
-
-Phase 4 — Architectural Reduction  
-Reduce attention heads and FFN size, then compare all models using the same dataset, preprocessing, and splits.
-""")
-st.divider()
-
-# -------------------------------------------------
 # Render Sections from Components
 # -------------------------------------------------
 
