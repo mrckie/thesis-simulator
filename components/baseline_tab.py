@@ -5,7 +5,7 @@ import plotly.express as px
 def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df, class_imbalance_df):
     st.markdown("<h1 style='text-align: center;'>Baseline Analysis</h1>", unsafe_allow_html=True)
 
-    baseline_names = ["baseline_58k_analysis", "baseline_12.5k_analysis"]
+    baseline_names = ["baseline 58k sample analysis", "baseline 12.5k sample analysis"]
     baseline_summary = summary_df[summary_df["model_name"].isin(baseline_names)].copy()
 
     base_tab1, base_tab2, base_tab3, base_tab4 = st.tabs([
@@ -18,9 +18,8 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
     # --- TAB 1: DATASET CONFIGURATION & IMBALANCE ---
     with base_tab1:
         st.markdown("### Dataset Configuration")
-        dataset_df = dataset_info_df.copy()
+        dataset_df = dataset_info_df[dataset_info_df["dataset"].isin(baseline_names)].copy()
         dataset_df = dataset_df.rename(columns={"dataset": "Dataset", "total": "Total Samples", "train": "Train", "val": "Validation", "test": "Test"})
-        dataset_df["Dataset"] = dataset_df["Dataset"].map({"baseline_58k_analysis": "58k Baseline Analysis", "baseline_12.5k_analysis": "12.5k Baseline Analysis"})
         
         plot_df = dataset_df.melt(id_vars="Dataset", value_vars=["Train", "Validation", "Test"], var_name="Split", value_name="Samples")
         plot_df["Samples"] = pd.to_numeric(plot_df["Samples"], errors='coerce')
@@ -32,8 +31,8 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
         st.plotly_chart(fig_dataset, use_container_width=True)
 
         st.markdown("### Class Imbalance")
-        imbalance_df = class_imbalance_df.copy()
-        imbalance_df['Dataset'] = imbalance_df['dataset'].map({"baseline_58k_analysis": "58k Baseline Analysis", "baseline_12.5k_analysis": "12.5k Baseline Analysis"})
+        imbalance_df = class_imbalance_df[class_imbalance_df["dataset"].isin(baseline_names)].copy()
+        imbalance_df['Dataset'] = imbalance_df['dataset']
         imbalance_df = imbalance_df.dropna(subset=['Dataset'])
         imbalance_df['Class'] = imbalance_df['target'].map({0: "Negative", 1: "Positive"})
         imbalance_df['Proportion (%)'] = (imbalance_df['proportion'] * 100).round(1)
@@ -62,7 +61,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
         col_c1, col_c2 = st.columns(2)
         with col_c1:
             st.write("**58k Baseline**")
-            curve_58k = base_curves[base_curves["model_name"] == "baseline_58k_analysis"]
+            curve_58k = base_curves[base_curves["model_name"] == "baseline 58k sample analysis"]
             if not curve_58k.empty:
                 fig_c1 = px.line(curve_58k, x="epoch", y=["training_loss"], markers=True)
                 fig_c1.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
@@ -70,7 +69,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
                 
         with col_c2:
             st.write("**12.5k Baseline**")
-            curve_12k = base_curves[base_curves["model_name"] == "baseline_12.5k_analysis"]
+            curve_12k = base_curves[base_curves["model_name"] == "baseline 12.5k sample analysis"]
             if not curve_12k.empty:
                 fig_c2 = px.line(curve_12k, x="epoch", y=["training_loss", "validation_loss"], markers=True)
                 fig_c2.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
@@ -84,7 +83,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
 
         with col_m1:
             st.write("**58k Baseline CM**")
-            cm_58k = cm_base[cm_base["model_name"] == "baseline_58k_analysis"]
+            cm_58k = cm_base[cm_base["model_name"] == "baseline 58k sample analysis"]
             if not cm_58k.empty:
                 matrix_58k = cm_58k.pivot(index="true_label", columns="predicted_label", values="count")
                 fig_m1 = px.imshow(matrix_58k, text_auto=True, color_continuous_scale="Blues")
@@ -93,7 +92,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
 
         with col_m2:
             st.write("**12.5k Baseline CM**")
-            cm_12k = cm_base[cm_base["model_name"] == "baseline_12.5k_analysis"]
+            cm_12k = cm_base[cm_base["model_name"] == "baseline 12.5k sample analysis"]
             if not cm_12k.empty:
                 matrix_12k = cm_12k.pivot(index="true_label", columns="predicted_label", values="count")
                 fig_m2 = px.imshow(matrix_12k, text_auto=True, color_continuous_scale="Blues")

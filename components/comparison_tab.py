@@ -11,18 +11,38 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
     st.markdown("### Environment & Model Selection")
     env_col, mod_col = st.columns(2)
 
+    # Mapping for environment display names
+    environment_map = {
+        "Environment with GPU": "gpu_t4",
+        "Environment with only CPU": "cpu_default"
+    }
+
     with env_col:
-        selected_environment = st.selectbox("Select Environment", options=["gpu_t4", "cpu_default"], index=0)
+        selected_env_display = st.selectbox("Select Environment", options=list(environment_map.keys()), index=0)
+        selected_environment = environment_map[selected_env_display]
 
     # Filter Data by Environment immediately
     env_summary = summary_df[summary_df["environment"].isin([selected_environment, "N/A"])]
     all_env_models = env_summary["model_name"].unique()
-    models_to_hide = ["baseline_58k_analysis", "baseline_12.5k_analysis"]
+    models_to_hide = ["baseline 58k sample analysis", "baseline 12.5k sample analysis"]
     available_models = [m for m in all_env_models if m not in models_to_hide]
-    valid_defaults = [m for m in ["baseline_12.5k_comparison", "33.33% reduction"] if m in available_models]
+    
+    # Mapping for model display names
+    model_display_map = {
+        "baseline": "baseline",
+        "33.33% reduction": "33.33% reduction"
+    }
+    # Reverse mapping to get display names from actual model names
+    model_reverse_map = {v: k for k, v in model_display_map.items()}
+    
+    # Get available display names
+    available_display_models = [model_reverse_map.get(m, m) for m in available_models]
+    valid_defaults_display = [m for m in ["baseline", "33.33% reduction"] if model_display_map.get(m) in available_models]
 
     with mod_col:
-        selected_models = st.multiselect("Select Models to Compare / Show", options=available_models, default=valid_defaults)
+        selected_display_models = st.multiselect("Select Models to Compare / Show", options=available_display_models, default=valid_defaults_display)
+        # Convert display names back to actual model names
+        selected_models = [model_display_map.get(m, m) for m in selected_display_models]
 
     # --- GLOBAL DATA FILTERING ---
     filtered_summary = env_summary[env_summary["model_name"].isin(selected_models)].copy()
@@ -181,8 +201,7 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
             fig = px.imshow(matrix, text_auto=True, color_continuous_scale="Blues", title=f"{selected_cm_model} Confusion Matrix")
             st.plotly_chart(fig, use_container_width=True)
 
-   
-# --- TAB 6: SENTIMENT ANALYSIS ---
+    # --- TAB 6: SENTIMENT ANALYSIS ---
     with tab6:
         st.markdown("### Emotion-Based Sentiment Inference")
         st.info(
@@ -219,17 +238,6 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
             elif not re.search('[a-zA-Z]', user_input):
                 st.error("Invalid Input: The inputted data consists only of symbols or numbers and does not express emotions.")
                 is_valid = False
-            
-            # 5. Check Language (Must be English)
-            if is_valid:
-                try:
-                    detected_lang = detect(user_input)
-                    if detected_lang != 'en':
-                        st.error(f"Language Error: GoEmotions is an English dataset. Detected language: '{detected_lang}'. Please enter English text only.")
-                        is_valid = False
-                except LangDetectException:
-                    st.error("Unrecognizable Input: Could not detect a valid language. Please enter a meaningful English sentence.")
-                    is_valid = False
 
             # ==========================================
             # INFERENCE EXECUTION

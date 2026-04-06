@@ -1,16 +1,16 @@
 model_name,environment,true_label,predicted_label,count
-baseline_58k_analysis,n/a,0,0,10631
-baseline_58k_analysis,n/a,0,1,208
-baseline_58k_analysis,n/a,1,0,560
-baseline_58k_analysis,n/a,1,1,201
-baseline_12.5k_analysis,n/a,0,0,1133
-baseline_12.5k_analysis,n/a,0,1,32
-baseline_12.5k_analysis,n/a,1,0,61
-baseline_12.5k_analysis,n/a,1,1,24
-baseline_12.5k_comparison,gpu_t4,0,0,412
-baseline_12.5k_comparison,gpu_t4,0,1,130
-baseline_12.5k_comparison,gpu_t4,1,0,122
-baseline_12.5k_comparison,gpu_t4,1,1,586
+baseline 58k sample analysis,n/a,0,0,10631
+baseline 58k sample analysis,n/a,0,1,208
+baseline 58k sample analysis,n/a,1,0,560
+baseline 58k sample analysis,n/a,1,1,201
+baseline 12.5k sample analysis,n/a,0,0,1133
+baseline 12.5k sample analysis,n/a,0,1,32
+baseline 12.5k sample analysis,n/a,1,0,61
+baseline 12.5k sample analysis,n/a,1,1,24
+baseline,gpu_t4,0,0,412
+baseline,gpu_t4,0,1,130
+baseline,gpu_t4,1,0,122
+baseline,gpu_t4,1,1,586
 33.33% reduction,gpu_t4,0,0,400
 33.33% reduction,gpu_t4,0,1,142
 33.33% reduction,gpu_t4,1,0,172

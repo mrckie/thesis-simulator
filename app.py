@@ -30,7 +30,7 @@ apply_custom_css()
 # Page Title
 # -------------------------------------------------
 st.markdown(
-    "<h1 style='text-align: center;'>DistilBERT Architectural Optimization for Sentiment Analysis</h1>",
+    "<h1 style='text-align: center;'>DistilBERT Architectural Optimization Dashboard</h1>",
     unsafe_allow_html=True
 )
 

@@ -1,14 +1,14 @@
 model_name,environment,epoch,training_loss,validation_loss
-baseline_58k_analysis,n/a,1,0.205141,n/a
-baseline_58k_analysis,n/a,2,0.177709,n/a
-baseline_58k_analysis,n/a,3,0.150124,n/a
-baseline_12.5k_analysis,n/a,1,0.227653,0.203147
-baseline_12.5k_analysis,n/a,2,0.184787,0.192197
-baseline_12.5k_analysis,n/a,3,0.144912,0.221831
-baseline_12.5k_comparison,gpu_t4,1,0.524417,0.452591
-baseline_12.5k_comparison,gpu_t4,2,0.40517,0.440156
-baseline_12.5k_comparison,gpu_t4,3,0.28779,0.55307
-baseline_12.5k_comparison,gpu_t4,4,0.193732,0.724839
+baseline 58k sample analysis,n/a,1,0.205141,n/a
+baseline 58k sample analysis,n/a,2,0.177709,n/a
+baseline 58k sample analysis,n/a,3,0.150124,n/a
+baseline 12.5k sample analysis,n/a,1,0.227653,0.203147
+baseline 12.5k sample analysis,n/a,2,0.184787,0.192197
+baseline 12.5k sample analysis,n/a,3,0.144912,0.221831
+baseline,gpu_t4,1,0.524417,0.452591
+baseline,gpu_t4,2,0.40517,0.440156
+baseline,gpu_t4,3,0.28779,0.55307
+baseline,gpu_t4,4,0.193732,0.724839
 33.33% reduction,gpu_t4,1,0.67377,0.63426
 33.33% reduction,gpu_t4,2,0.555004,0.520368
 33.33% reduction,gpu_t4,3,0.443584,0.592448

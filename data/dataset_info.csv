@@ -1,4 +1,4 @@
 dataset,total,train,val,test
-baseline_58k_analysis,58000,46400,n/a,11600
-baseline_12.5k_analysis,12500,10000,1250,1250
-baseline_12.5k_comparison,12500,10000,1250,1250
+baseline 58k sample analysis,58000,46400,n/a,11600
+baseline 12.5k sample analysis,12500,10000,1250,1250
+baseline,12500,10000,1250,1250
