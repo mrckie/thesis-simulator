@@ -65,7 +65,6 @@ with col_main:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-st.divider()
 
 # -------------------------------------------------
 # Load Experiment Data & Models
@@ -90,10 +89,12 @@ def load_sentiment_models():
 # Render Sections from Components
 # -------------------------------------------------
 
+st.markdown('<div class="main-tabs">', unsafe_allow_html=True)
 tab1, tab2 = st.tabs(["Baseline Analysis", "Model Comparison"])
-
+st.markdown("<h1 style='text-align: center;'>Select Section</h1>", unsafe_allow_html=True)
 with tab1:
     render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df, class_imbalance_df)
 
 with tab2:
     render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models)
+st.markdown('</div>', unsafe_allow_html=True)

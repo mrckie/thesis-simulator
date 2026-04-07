@@ -41,6 +41,15 @@ def apply_custom_css():
         [data-testid="stHeader"] {
             display: none !important;
         }
+
+        /* 5. Center the tabs and make font bigger */
+        .stTabs {
+            display: flex !important;
+            justify-content: center !important;
+        }
+        .stTabs button {
+            font-size: 18px !important;
+        }
     </style>
     """, unsafe_allow_html=True)
     
