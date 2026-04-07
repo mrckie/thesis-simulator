@@ -191,15 +191,20 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
 
     # --- TAB 5: CONFUSION MATRIX ---
     with tab5:
-        selected_cm_model = st.selectbox("Select Model", selected_models)
-        cm_df_model = filtered_confusion[filtered_confusion["model_name"] == selected_cm_model].copy()
-        cm_df_model["count"] = pd.to_numeric(cm_df_model["count"], errors='coerce').fillna(0)
-        cm_display = cm_df_model.rename(columns={"true_label": "True Label", "predicted_label": "Predicted Label"})
-        
-        if not cm_display.empty:
-            matrix = cm_display.pivot(index="True Label", columns="Predicted Label", values="count")
-            fig = px.imshow(matrix, text_auto=True, color_continuous_scale="Blues", title=f"{selected_cm_model} Confusion Matrix")
-            st.plotly_chart(fig, use_container_width=True)
+        if selected_models:
+            for model_name in selected_models:
+                cm_df_model = filtered_confusion[filtered_confusion["model_name"] == model_name].copy()
+                cm_df_model["count"] = pd.to_numeric(cm_df_model["count"], errors='coerce').fillna(0)
+                cm_display = cm_df_model.rename(columns={"true_label": "True Label", "predicted_label": "Predicted Label"})
+
+                if not cm_display.empty:
+                    matrix = cm_display.pivot(index="True Label", columns="Predicted Label", values="count")
+                    fig = px.imshow(matrix, text_auto=True, color_continuous_scale="Blues", title=f"{model_name} Confusion Matrix")
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.warning(f"No confusion matrix data available for {model_name}.")
+        else:
+            st.warning("No models selected. Please choose models in the Comparison selector above.")
 
     # --- TAB 6: SENTIMENT ANALYSIS ---
     with tab6:
