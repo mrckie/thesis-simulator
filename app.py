@@ -89,11 +89,13 @@ def load_sentiment_models():
 # Render Sections from Components
 # -------------------------------------------------
 
-st.markdown("<h1 style='text-align: center;'>Select Section</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='select-section-title'>Select Section</div>",
+    unsafe_allow_html=True
+)
 tab1, tab2 = st.tabs(["Baseline Analysis", "Model Comparison"])
 with tab1:
     render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df, class_imbalance_df)
 
 with tab2:
     render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models)
-st.markdown('</div>', unsafe_allow_html=True)

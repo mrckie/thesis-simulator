@@ -82,7 +82,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
         col_m1, col_m2 = st.columns(2)
 
         with col_m1:
-            st.write("**58k Baseline CM**")
+            st.write("**58k baseline confusion matrix**")
             cm_58k = cm_base[cm_base["model_name"] == "baseline 58k sample analysis"]
             if not cm_58k.empty:
                 matrix_58k = cm_58k.pivot(index="true_label", columns="predicted_label", values="count")
@@ -91,7 +91,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
                 st.plotly_chart(fig_m1, use_container_width=True)
 
         with col_m2:
-            st.write("**12.5k Baseline CM**")
+            st.write("**12.5k baseline confusion matrix**")
             cm_12k = cm_base[cm_base["model_name"] == "baseline 12.5k sample analysis"]
             if not cm_12k.empty:
                 matrix_12k = cm_12k.pivot(index="true_label", columns="predicted_label", values="count")

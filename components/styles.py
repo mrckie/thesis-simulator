@@ -42,6 +42,30 @@ def apply_custom_css():
             display: none !important;
         }
 
+        /* 5. Select Section Title */
+        .select-section-title {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0.75rem 0 1rem;
+        }
+        
+        /* 6. Tab styling - center and make bold */
+        .stTabs [data-baseweb="tab-list"] {
+            justify-content: center;
+            gap: 2rem;
+        }
+        
+        .stTabs [role="tab"] {
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+        }
+        
+        .stTabs [role="tab"][aria-selected="true"] {
+            font-weight: 800;
+        }
+
     </style>
     """, unsafe_allow_html=True)
     
