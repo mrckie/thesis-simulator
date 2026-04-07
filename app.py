@@ -90,10 +90,10 @@ def load_sentiment_models():
 # Render Sections from Components
 # -------------------------------------------------
 
-# Part 1
-render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df, class_imbalance_df)
+tab1, tab2 = st.tabs(["Baseline Analysis", "Model Comparison"])
 
-st.divider()
+with tab1:
+    render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df, class_imbalance_df)
 
-# Part 2
-render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models)
+with tab2:
+    render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models)
