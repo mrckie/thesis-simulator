@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import re
-from langdetect import detect, LangDetectException
 
 def render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models_func):
     st.markdown("<h1 style='text-align: center;'>Baseline vs Modified Architectures</h1>", unsafe_allow_html=True)
