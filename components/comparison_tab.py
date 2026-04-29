@@ -220,7 +220,13 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
             "**Baseline Model** against the **Optimized Architecture (41.67% Reduction)**. "
             "Both models are hosted on and retrieved directly from the **Hugging Face Model Hub**"
         )
-
+        st.info(
+    "This tool compares the real-world predictive behavior of the "
+    "**Baseline Model** against the **Optimized Architecture (41.67% Reduction)**. "
+    "Both models are hosted on and retrieved directly from the **Hugging Face Model Hub**. "
+    "Please **Note** that upon the first input of a sentiment, this may take a second as the model is being fetched and loaded. "
+    "Subsequent inputs will be processed significantly faster once the model is fully initialized."
+)
         user_input = st.text_area("Enter a short sentence expressing emotion or sentiment:", placeholder="e.g., I feel happy today.", height=100)
 
         if st.button("Analyze Sentiment", type="primary"):
