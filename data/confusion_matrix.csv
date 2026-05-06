@@ -23,10 +23,10 @@ baseline,gpu_t4,1,1,586
 50% reduction,gpu_t4,0,1,102
 50% reduction,gpu_t4,1,0,234
 50% reduction,gpu_t4,1,1,474
-baseline_12.5k_comparison,cpu_default,0,0,421
-baseline_12.5k_comparison,cpu_default,0,1,121
-baseline_12.5k_comparison,cpu_default,1,0,148
-baseline_12.5k_comparison,cpu_default,1,1,560
+baseline,cpu_default,0,0,421
+baseline,cpu_default,0,1,121
+baseline,cpu_default,1,0,148
+baseline,cpu_default,1,1,560
 33.33% reduction,cpu_default,0,0,377
 33.33% reduction,cpu_default,0,1,165
 33.33% reduction,cpu_default,1,0,176

@@ -24,10 +24,10 @@ baseline,gpu_t4,4,0.193732,0.724839
 50% reduction,gpu_t4,3,0.444067,0.614102
 50% reduction,gpu_t4,4,0.373466,0.584937
 50% reduction,gpu_t4,5,0.321534,0.623313
-baseline_12.5k_comparison,cpu_default,1,0.528438,0.439099
-baseline_12.5k_comparison,cpu_default,2,0.411916,0.440212
-baseline_12.5k_comparison,cpu_default,3,0.291551,0.525921
-baseline_12.5k_comparison,cpu_default,4,0.192878,0.705952
+baseline,cpu_default,1,0.528438,0.439099
+baseline,cpu_default,2,0.411916,0.440212
+baseline,cpu_default,3,0.291551,0.525921
+baseline,cpu_default,4,0.192878,0.705952
 33.33% reduction,cpu_default,1,0.674567,0.645904
 33.33% reduction,cpu_default,2,0.559463,0.523898
 33.33% reduction,cpu_default,3,0.445563,0.626974

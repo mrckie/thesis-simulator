@@ -44,22 +44,23 @@ col_left, col_main, col_right = st.columns([8, 84, 8])
 with col_main:
     main_container = st.container()
     with main_container:
+        
         uploaded_file = st.file_uploader(
             "Upload Dataset (GoEmotions Only) to proceed",
             type=["csv"],
             label_visibility="hidden" 
         )
+
+        st.info("""
+        **Welcome!** Let's have a quick overview! The web application allows you to interactively explore the results of the experiment, where the researchers mathematically reduced the DistilBERT model to optimize it under small dataset conditions while keeping any performance trade-offs relative to the baseline.
+
+        **How to navigate this tool:**
+        1. **Upload the Dataset:** To begin, please upload the specific `GoEmotions` CSV dataset used during the experiment in the dropzone above.
+        2. **Explore Section 1 (Baseline Analysis):** The section proves the experimental control. It shows how the original, untouched DistilBERT behaves, establishing a reliable benchmark to compare against.
+        3. **Explore Section 2 (Baseline vs. Modified):** The is the core of the research. Here, you can directly compare the optimized, reduced architectures against the heavy baseline. You can view parameter counts, training times, accuracy metrics, and even test the best model in live!
+        """)
         
         if uploaded_file is None:
-            # The new Welcome Guide replaces the simple warning
-            st.info("""
-            **Welcome!** Let's have a quick overview! the web application allows you to interactively explore the results of the experiment, where the researchers mathematically reduced the DistilBERT model to optimize it under small dataset conditions while keeping any performance trade-offs relative to the baseline.
-
-            **How to navigate this tool:**
-            1. **Upload the Dataset:** To begin, please upload the specific `GoEmotions` CSV dataset used during the experiment in the dropzone above.
-            2. **Explore Section 1 (Baseline Analysis):** The section proves the experimental control. It shows how the original, untouched DistilBERT behaves, establishing a reliable benchmark to compare against.
-            3. **Explore Section 2 (Baseline vs. Modified):** The is the core of the research. Here, you can directly compare the optimized, reduced architectures against the heavy baseline. You can view parameter counts, training times, accuracy metrics, and even test the best model in live!
-            """)
             st.stop()
 
         uploaded_name = Path(uploaded_file.name).name.lower()
