@@ -25,7 +25,15 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
         plot_df["Samples"] = pd.to_numeric(plot_df["Samples"], errors='coerce')
         plot_df = plot_df.dropna(subset=["Samples"])
 
-        fig_dataset = px.bar(plot_df, x="Dataset", y="Samples", color="Split", barmode="group", text="Samples")
+        # Applied neutral/informative colors for dataset splits
+        fig_dataset = px.bar(
+            plot_df, x="Dataset", y="Samples", color="Split", barmode="group", text="Samples",
+            color_discrete_map={
+                "Train": "#1f77b4",       # Deep Corporate Blue
+                "Validation": "#ff7f0e",  # Vibrant Orange
+                "Test": "#17becf"         # Teal
+            }
+        )
         fig_dataset.update_traces(textposition='outside')
         fig_dataset.update_layout(xaxis_title="Dataset", yaxis_title="Number of Samples", yaxis_range=[0, plot_df["Samples"].max() * 1.2])
         st.plotly_chart(fig_dataset, use_container_width=True)
@@ -37,7 +45,14 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
         imbalance_df['Class'] = imbalance_df['target'].map({0: "Negative", 1: "Positive"})
         imbalance_df['Proportion (%)'] = (imbalance_df['proportion'] * 100).round(1)
 
-        fig_imbalance = px.bar(imbalance_df, x="Dataset", y="Proportion (%)", color="Class", barmode="group", text="Proportion (%)")
+        # Applied strict Green/Red mapping for Positive/Negative classes
+        fig_imbalance = px.bar(
+            imbalance_df, x="Dataset", y="Proportion (%)", color="Class", barmode="group", text="Proportion (%)",
+            color_discrete_map={
+                "Positive": "#28a745",    # Success Green
+                "Negative": "#dc3545"     # Warning Red
+            }
+        )
         fig_imbalance.update_traces(textposition='outside')
         fig_imbalance.update_layout(xaxis_title="Dataset", yaxis_title="Proportion (%)", yaxis_range=[0, 115])
         st.plotly_chart(fig_imbalance, use_container_width=True)
@@ -63,7 +78,11 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
             st.write("**58k Baseline**")
             curve_58k = base_curves[base_curves["model_name"] == "baseline 58k sample analysis"]
             if not curve_58k.empty:
-                fig_c1 = px.line(curve_58k, x="epoch", y=["training_loss"], markers=True)
+                # Map the line color
+                fig_c1 = px.line(
+                    curve_58k, x="epoch", y=["training_loss"], markers=True,
+                    color_discrete_map={"training_loss": "#1f77b4"} # Blue
+                )
                 fig_c1.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
                 st.plotly_chart(fig_c1, use_container_width=True)
                 
@@ -71,7 +90,14 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
             st.write("**12.5k Baseline**")
             curve_12k = base_curves[base_curves["model_name"] == "baseline 12.5k sample analysis"]
             if not curve_12k.empty:
-                fig_c2 = px.line(curve_12k, x="epoch", y=["training_loss", "validation_loss"], markers=True)
+                # Map both line colors
+                fig_c2 = px.line(
+                    curve_12k, x="epoch", y=["training_loss", "validation_loss"], markers=True,
+                    color_discrete_map={
+                        "training_loss": "#1f77b4",      # Blue
+                        "validation_loss": "#ff7f0e"     # Orange
+                    }
+                )
                 fig_c2.update_layout(xaxis_title="Epoch", yaxis_title="Loss", showlegend=True)
                 st.plotly_chart(fig_c2, use_container_width=True)
 

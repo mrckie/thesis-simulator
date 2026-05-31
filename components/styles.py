@@ -65,7 +65,29 @@ def apply_custom_css():
         .stTabs [role="tab"][aria-selected="true"] {
             font-weight: 800;
         }
+        
+        /* 7. Target Streamlit Buttons to force Blue Theme instead of Red */
+        /* Primary Buttons (Filled background) */
+        div[data-testid="stButton"] button[kind="primary"] {
+            background-color: #1f77b4 !important; 
+            border-color: #1f77b4 !important;
+            color: white !important;
+        }
+        div[data-testid="stButton"] button[kind="primary"]:hover {
+            background-color: #155a8a !important; 
+            border-color: #155a8a !important;
+        }
+
+        /* Secondary Buttons (Outlined background) */
+        div[data-testid="stButton"] button[kind="secondary"] {
+            border-color: #1f77b4 !important;
+            color: #1f77b4 !important;
+        }
+        div[data-testid="stButton"] button[kind="secondary"]:hover {
+            border-color: #155a8a !important;
+            color: #155a8a !important;
+            background-color: rgba(31, 119, 180, 0.1) !important;
+        }
 
     </style>
     """, unsafe_allow_html=True)
-    

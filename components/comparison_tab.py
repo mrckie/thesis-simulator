@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import re
 
-def render_comparison_section(summary_df, curves_df, confusion_df, load_sentiment_models_func):
+def render_comparison_section(summary_df, curves_df, confusion_df):
     st.markdown("<h1 style='text-align: center;'>Baseline vs Modified Architectures</h1>", unsafe_allow_html=True)
 
     # --- GLOBAL ENVIRONMENT & MODEL SELECTION ---
@@ -56,9 +56,18 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
     env_confusion = confusion_df[confusion_df["environment"].isin([selected_environment, "N/A"])]
     filtered_confusion = env_confusion[env_confusion["model_name"].isin(selected_models)]
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    # --- COLOR MAPPING FOR CONSISTENCY ---
+    # Assign distinct, professional colors avoiding red/green
+    MODEL_COLORS = {
+        "baseline": "#1f77b4",          # Deep Corporate Blue
+        "33.33% reduction": "#ff7f0e",  # Vibrant Orange
+        "41.67% reduction": "#9467bd",  # Soft Purple
+        "50% reduction": "#17becf"      # Teal
+    }
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Architecture & Size", "Predictive Performance", "Computational Efficiency", 
-        "Training Curves", "Confusion Matrix", "Sentiment Analysis (Live)" 
+        "Training Curves", "Confusion Matrix" 
     ])
 
     # --- TAB 1: ARCHITECTURE ---
@@ -72,7 +81,10 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
         st.dataframe(architecture_table.fillna("N/A"), use_container_width=True)
 
         st.markdown("### Model Parameter Count")
-        fig_params = px.bar(architecture_table, x="Model", y="Parameters", text="Parameters", color="Model")
+        fig_params = px.bar(
+            architecture_table, x="Model", y="Parameters", text="Parameters", color="Model",
+            color_discrete_map=MODEL_COLORS
+        )
         fig_params.update_traces(texttemplate='%{text:,}', textposition='outside') 
         fig_params.update_layout(xaxis_title="Model", yaxis_title="Total Parameters", yaxis_range=[0, architecture_table["Parameters"].max() * 1.2])
         st.plotly_chart(fig_params, use_container_width=True)
@@ -95,7 +107,10 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
         # PERMANENT SORT: Highest Score to Lowest Score
         perf_df = perf_df.sort_values(detailed_metric_choice, ascending=False)
 
-        fig_detailed = px.bar(perf_df, x="Model", y=detailed_metric_choice, color="Model", text_auto=True)
+        fig_detailed = px.bar(
+            perf_df, x="Model", y=detailed_metric_choice, color="Model", text_auto=True,
+            color_discrete_map=MODEL_COLORS
+        )
         fig_detailed.update_traces(texttemplate='%{y:.2%}', textposition='outside')
         fig_detailed.update_layout(xaxis_title="Model", yaxis_title=selected_metric_label, yaxis_tickformat=".0%", yaxis_range=[0, 1.1])
         st.plotly_chart(fig_detailed, use_container_width=True)
@@ -142,17 +157,26 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
         efficiency_display = efficiency_df.rename(columns={"model_name": "Model", "train_time_display": "Training Time", "gpu_memory_display": gpu_memory_label, "cpu_memory_display": cpu_memory_label})
 
         st.subheader("Training Time Comparison")
-        fig = px.bar(efficiency_display, x="Model", y="Training Time", color="Model", text_auto=True, title=time_label)
+        fig = px.bar(
+            efficiency_display, x="Model", y="Training Time", color="Model", text_auto=True, title=time_label,
+            color_discrete_map=MODEL_COLORS
+        )
         fig.update_traces(texttemplate='%{y:.2f}')
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Peak GPU Memory Usage")
-        fig2 = px.bar(efficiency_display, x="Model", y=gpu_memory_label, color="Model", text_auto=True, title=gpu_memory_label)
+        fig2 = px.bar(
+            efficiency_display, x="Model", y=gpu_memory_label, color="Model", text_auto=True, title=gpu_memory_label,
+            color_discrete_map=MODEL_COLORS
+        )
         fig2.update_traces(texttemplate='%{y:.2f}')
         st.plotly_chart(fig2, use_container_width=True)
 
         st.subheader("Peak CPU Memory Usage")
-        fig3 = px.bar(efficiency_display, x="Model", y=cpu_memory_label, color="Model", text_auto=True, title=cpu_memory_label)
+        fig3 = px.bar(
+            efficiency_display, x="Model", y=cpu_memory_label, color="Model", text_auto=True, title=cpu_memory_label,
+            color_discrete_map=MODEL_COLORS
+        )
         fig3.update_traces(texttemplate='%{y:.2f}')
         st.plotly_chart(fig3, use_container_width=True)
 
@@ -181,11 +205,17 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
         curves_df_display = curves_df_display.rename(columns={"model_name": "Model", "epoch": "Epoch", "training_loss": "Training Loss", "validation_loss": "Validation Loss"})
 
         st.subheader("Training Loss")
-        fig = px.line(curves_df_display, x="Epoch", y="Training Loss", color="Model", markers=True)
+        fig = px.line(
+            curves_df_display, x="Epoch", y="Training Loss", color="Model", markers=True,
+            color_discrete_map=MODEL_COLORS
+        )
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Validation Loss")
-        fig2 = px.line(curves_df_display, x="Epoch", y="Validation Loss", color="Model", markers=True)
+        fig2 = px.line(
+            curves_df_display, x="Epoch", y="Validation Loss", color="Model", markers=True,
+            color_discrete_map=MODEL_COLORS
+        )
         st.plotly_chart(fig2, use_container_width=True)
 
     # --- TAB 5: CONFUSION MATRIX ---
@@ -211,79 +241,3 @@ def render_comparison_section(summary_df, curves_df, confusion_df, load_sentimen
                             st.warning(f"No confusion matrix data available for {model_name}.")
         else:
             st.warning("No models selected. Please choose models in the Comparison selector above.")
-
-    # --- TAB 6: SENTIMENT ANALYSIS ---
-    with tab6:
-        st.info(
-        "This tool compares the real-world predictive behavior of the "
-        "**Baseline Model** against the **Optimized Architecture (41.67% Reduction)**. "
-        "Both models are hosted on and retrieved directly from the **Hugging Face Model Hub**. "
-        "Please **Note** that upon the first input of a sentiment, this may take a second as the model is being fetched and loaded. "
-        "Subsequent inputs will be processed significantly faster once the model is fully initialized."
-        )
-        user_input = st.text_area("Enter a short sentence expressing emotion or sentiment:", placeholder="e.g., I feel happy today.", height=100)
-
-        if st.button("Analyze Sentiment", type="primary"):
-            
-            # ==========================================
-            # INPUT VALIDATION (BETA TESTING CRITERIA)
-            # ==========================================
-            is_valid = True
-            
-            # 1. Check if empty
-            if not user_input.strip():
-                st.warning("Please enter some text to analyze.")
-                is_valid = False
-                
-            # 2. Check for minimum length (Cannot be just "a" or "ok")
-            elif len(user_input.strip()) < 3:
-                st.warning("Input is too short. Please enter a meaningful sentence expressing an emotion.")
-                is_valid = False
-                
-            # 3. Check for maximum length (Prevents DistilBERT token overflow / crashes)
-            elif len(user_input) > 1000:
-                st.warning("Input is too long! Please limit your text to a short paragraph (under 1000 characters).")
-                is_valid = False
-                
-            # 4. Check for Gibberish/Symbols (Must contain actual alphabetical letters)
-            elif not re.search('[a-zA-Z]', user_input):
-                st.error("Invalid Input: The inputted data consists only of symbols or numbers and does not express emotions.")
-                is_valid = False
-
-            # ==========================================
-            # INFERENCE EXECUTION
-            # ==========================================
-            if is_valid:
-                try:
-                    baseline_model, compressed_model = load_sentiment_models_func()
-                    
-                    base_result = baseline_model(user_input)[0]
-                    comp_result = compressed_model(user_input)[0]
-                    
-                    label_map = {"LABEL_0": "Negative 🔴", "LABEL_1": "Positive 🟢"}
-                    
-                    base_label = label_map.get(base_result['label'], base_result['label'])
-                    base_score = base_result['score']
-                    comp_label = label_map.get(comp_result['label'], comp_result['label'])
-                    comp_score = comp_result['score']
-                    
-                    st.markdown("#### Inference Results")
-                    res_col1, res_col2 = st.columns(2)
-                    
-                    with res_col1:
-                        st.markdown("**Baseline Model**")
-                        st.metric(label="Prediction", value=base_label)
-                        st.progress(base_score, text=f"Confidence: {base_score:.2%}")
-                        
-                    with res_col2:
-                        st.markdown("**Optimized Model (41.67% Architecture Reduction)**")
-                        st.metric(label="Prediction", value=comp_label)
-                        st.progress(comp_score, text=f"Confidence: {comp_score:.2%}")
-                        
-                    if base_label != comp_label:
-                        st.warning("The models disagree on this sentiment!")
-                    else:
-                        st.success("Both models agree on the sentiment!")
-                        
-                except Exception as e:
-                    st.error(f"Error loading or running models: {e}")
