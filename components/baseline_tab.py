@@ -38,7 +38,11 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
                     "Test": "#17becf"         # Teal
                 }
             )
-            fig_dataset.update_traces(textposition='outside')
+            fig_dataset.update_traces(
+                textposition='outside',
+                texttemplate='%{text:,}', # Formats the text with commas
+                hovertemplate="Split: %{color}<br>Samples: %{y:,}<extra></extra>"
+            )
             fig_dataset.update_layout(xaxis_title="Dataset", yaxis_title="Number of Samples", yaxis_range=[0, plot_df["Samples"].max() * 1.2])
             st.plotly_chart(fig_dataset, use_container_width=True)
 
@@ -49,6 +53,7 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
             imbalance_df = imbalance_df.dropna(subset=['Dataset'])
             imbalance_df['Class'] = imbalance_df['target'].map({0: "Negative", 1: "Positive"})
             imbalance_df['Proportion (%)'] = (imbalance_df['proportion'] * 100).round(1)
+            imbalance_df['Count'] = imbalance_df['count'] # Extract raw count for hover
 
             # Applied strict Green/Red mapping for Positive/Negative classes
             fig_imbalance = px.bar(
@@ -56,11 +61,87 @@ def render_baseline_section(summary_df, curves_df, confusion_df, dataset_info_df
                 color_discrete_map={
                     "Positive": "#28a745",    # Success Green
                     "Negative": "#dc3545"     # Warning Red
-                }
+                },
+                hover_data=["Count"] # Attach the exact count variable to the tooltip
             )
-            fig_imbalance.update_traces(textposition='outside')
+            
+            # Cleanly format the hover tooltip to show both proportion and exact count
+            fig_imbalance.update_traces(
+                textposition='outside',
+                hovertemplate="<br>".join([
+                    "Class: %{color}",
+                    "Proportion: %{y}%",
+                    "Count: %{customdata[0]:,}",
+                    "<extra></extra>"
+                ])
+            )
             fig_imbalance.update_layout(xaxis_title="Dataset", yaxis_title="Proportion (%)", yaxis_range=[0, 115])
             st.plotly_chart(fig_imbalance, use_container_width=True)
+
+        # -------------------------------------------------------------
+        # NEW SECTION: DATASET PREPROCESSING
+        # -------------------------------------------------------------
+        st.divider()
+        st.markdown("<h4 style='text-align: center;'>Dataset After Preprocessing</h4>", unsafe_allow_html=True)
+        
+        orig_col1, orig_col2 = st.columns(2, gap="large")
+        
+        with orig_col1:
+            st.markdown("<h5 style='text-align: center;'>Dataset Configuration</h5>", unsafe_allow_html=True)
+            orig_ds_df = dataset_info_df[dataset_info_df["dataset"] == "baseline"].copy()
+            if not orig_ds_df.empty:
+                orig_ds_df = orig_ds_df.rename(columns={"dataset": "Dataset", "total": "Total Samples", "train": "Train", "val": "Validation", "test": "Test"})
+                
+                orig_plot = orig_ds_df.melt(id_vars="Dataset", value_vars=["Train", "Validation", "Test"], var_name="Split", value_name="Samples")
+                orig_plot["Samples"] = pd.to_numeric(orig_plot["Samples"], errors='coerce')
+                orig_plot = orig_plot.dropna(subset=["Samples"])
+
+                fig_orig_ds = px.bar(
+                    orig_plot, x="Dataset", y="Samples", color="Split", barmode="group", text="Samples",
+                    color_discrete_map={
+                        "Train": "#1f77b4",       
+                        "Validation": "#ff7f0e",  
+                        "Test": "#17becf"         
+                    }
+                )
+                fig_orig_ds.update_traces(
+                    textposition='outside', 
+                    texttemplate='%{text:,}', 
+                    hovertemplate="Split: %{color}<br>Samples: %{y:,}<extra></extra>"
+                )
+                fig_orig_ds.update_layout(xaxis_title="Raw Baseline Data", yaxis_title="Number of Samples", yaxis_range=[0, orig_plot["Samples"].max() * 1.2], showlegend=True)
+                fig_orig_ds.update_xaxes(showticklabels=False) # Hide the x-label since it's just one category
+                st.plotly_chart(fig_orig_ds, use_container_width=True)
+
+        with orig_col2:
+            st.markdown("<h5 style='text-align: center;'>Dataset Distribution</h5>", unsafe_allow_html=True)
+            orig_imb_df = class_imbalance_df[class_imbalance_df["dataset"] == "baseline"].copy()
+            if not orig_imb_df.empty:
+                orig_imb_df['Dataset'] = orig_imb_df['dataset']
+                orig_imb_df['Class'] = orig_imb_df['target'].map({0: "Negative", 1: "Positive"})
+                orig_imb_df['Proportion (%)'] = (orig_imb_df['proportion'] * 100).round(1)
+                orig_imb_df['Count'] = orig_imb_df['count']
+
+                fig_orig_imb = px.bar(
+                    orig_imb_df, x="Dataset", y="Proportion (%)", color="Class", barmode="group", text="Proportion (%)",
+                    color_discrete_map={
+                        "Positive": "#28a745",    
+                        "Negative": "#dc3545"     
+                    },
+                    hover_data=["Count"]
+                )
+                fig_orig_imb.update_traces(
+                    textposition='outside',
+                    hovertemplate="<br>".join([
+                        "Class: %{color}",
+                        "Proportion: %{y}%",
+                        "Count: %{customdata[0]:,}",
+                        "<extra></extra>"
+                    ])
+                )
+                fig_orig_imb.update_layout(xaxis_title="Raw Baseline Data", yaxis_title="Proportion (%)", yaxis_range=[0, 115])
+                fig_orig_imb.update_xaxes(showticklabels=False) # Hide the x-label since it's just one category
+                st.plotly_chart(fig_orig_imb, use_container_width=True)
 
     # --- TAB 2: CLASSIFICATION REPORTS ---
     with base_tab2:
