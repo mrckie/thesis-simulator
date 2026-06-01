@@ -37,16 +37,28 @@ if "current_view" not in st.session_state:
     st.session_state.current_view = "home"
 
 # -------------------------------------------------
-# Global Page Title
+# Global Page Title (Hero Section)
 # -------------------------------------------------
-st.markdown(
-    "<h1 style='text-align: center;'>DistilBERT Architectural and Hyperparameter Optimization</h1>",
-    unsafe_allow_html=True
-)
-st.divider()
+st.markdown("""
+<div style="background: linear-gradient(135deg, #1f77b4 0%, #155a8a 100%);
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+    <h1 style="color: white; margin-bottom: 0.5rem; font-size: 2.8rem; font-weight: 800;">
+        DistilBERT Architectural and Hyperparameter Optimization
+    </h1>
+    <p style="font-size: 1.2rem; font-weight: 400; opacity: 0.9; margin: 0;">
+        An interactive dashboard for analyzing modified model architectures, performance tradeoffs, and live sentiment prediction.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-# ADD THIS LINE RIGHT HERE:
+# Anchor for scrolling to the top of the dashboard smoothly
 top_anchor = st.empty()
+
 
 # =====================================================================
 # VIEW 1: HOME PAGE (Sentiment App + Dataset Gateway)

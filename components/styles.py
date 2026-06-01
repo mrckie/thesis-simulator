@@ -89,5 +89,10 @@ def apply_custom_css():
             background-color: rgba(31, 119, 180, 0.1) !important;
         }
 
+        /* 8. Remove Streamlit's default massive top padding */
+        .block-container {
+            padding-top: 2rem !important; 
+        }
+
     </style>
     """, unsafe_allow_html=True)
